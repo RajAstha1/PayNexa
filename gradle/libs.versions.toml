@@ -1,0 +1,14 @@
+[versions]
+spring-boot = "4.1.2"
+zonky-embedded-postgres = "2.2.2"
+zonky-postgres-binaries = "17.11.0"
+resilience4j = "2.4.0"
+
+[libraries]
+spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+zonky-embedded-postgres = { module = "io.zonky.test:embedded-postgres", version.ref = "zonky-embedded-postgres" }
+zonky-postgres-binaries-bom = { module = "io.zonky.test.postgres:embedded-postgres-binaries-bom", version.ref = "zonky-postgres-binaries" }
+resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

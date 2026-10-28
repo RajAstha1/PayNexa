@@ -1,0 +1,1 @@
+CREATE TABLE smoke (id BIGSERIAL PRIMARY KEY, amount NUMERIC(19,4) NOT NULL CHECK (amount > 0));

@@ -1,0 +1,23 @@
+# Archived pre-rebuild tree (upstream-derived, no license). Never part of this project's history.
+/_archive/
+
+# Build outputs
+.gradle/
+build/
+out/
+*.class
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Local secrets and keys. Only *.example files are tracked.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+/secrets/
+!/secrets/.gitkeep
