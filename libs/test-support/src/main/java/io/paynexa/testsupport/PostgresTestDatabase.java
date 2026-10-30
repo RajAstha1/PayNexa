@@ -46,38 +46,48 @@ public final class PostgresTestDatabase {
         return server;
     }
 
-    /** Creates a new empty database and returns a pooled-free DataSource connected to it (superuser). */
-    public static DataSource emptyDatabase() {
+    /** Creates a new empty database; returns its name. */
+    public static String createDatabase() {
         var name = "t" + COUNTER.incrementAndGet() + "_" + Long.toHexString(System.nanoTime());
         try (var c = server().getPostgresDatabase().getConnection(); var st = c.createStatement()) {
             st.execute("CREATE DATABASE " + name);
         } catch (SQLException e) {
             throw new IllegalStateException(e);
         }
-        return dataSourceFor(name, "postgres");
+        return name;
     }
 
-    /** New database with {@code schema} created and Flyway migrations from {@code locations} applied into it. */
+    public static DataSource emptyDatabase() {
+        return dataSourceFor(createDatabase(), "postgres", null);
+    }
+
+    /**
+     * New database with {@code schema} created and the Flyway migrations from {@code locations} applied. The returned
+     * DataSource has the schema on its search_path, exactly like the services' production configuration.
+     */
     public static DataSource migrated(String schema, String... locations) {
-        var ds = emptyDatabase();
+        var name = createDatabase();
         Flyway.configure()
-                .dataSource(ds)
+                .dataSource(dataSourceFor(name, "postgres", null))
                 .schemas(schema)
                 .defaultSchema(schema)
                 .createSchemas(true)
                 .locations(locations)
                 .load()
                 .migrate();
-        return ds;
+        return dataSourceFor(name, "postgres", schema);
     }
 
-    public static DataSource dataSourceFor(String database, String user) {
+    public static DataSource dataSourceFor(String database, String user, String currentSchema) {
         var ds = new PGSimpleDataSource();
         ds.setServerNames(new String[] {"localhost"});
         ds.setPortNumbers(new int[] {server().getPort()});
         ds.setDatabaseName(database);
         ds.setUser(user);
         ds.setPassword("postgres");
+        if (currentSchema != null) {
+            ds.setCurrentSchema(currentSchema);
+        }
         return ds;
     }
 

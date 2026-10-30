@@ -120,6 +120,7 @@ CREATE TABLE outbox_events (
     attempts         INTEGER      NOT NULL DEFAULT 0,
     next_attempt_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     last_error       VARCHAR(500),
+    correlation_id   VARCHAR(64),
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
     published_at     TIMESTAMPTZ
 );
