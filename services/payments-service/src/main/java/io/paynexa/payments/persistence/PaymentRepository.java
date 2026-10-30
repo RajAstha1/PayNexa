@@ -113,14 +113,14 @@ public class PaymentRepository {
 
     /** Claims due payouts for processing; SKIP LOCKED lets several workers run without blocking each other. */
     public List<Payment> lockDuePayouts(Instant now, int limit) {
-        return jdbc.sql("SELECT " + COLUMNS + """
+        return jdbc.sql("SELECT " + COLUMNS + " " + """
                  FROM payments WHERE kind = 'PAYOUT' AND status = 'SUBMITTED' AND rail_next_attempt_at <= :now
                  ORDER BY rail_next_attempt_at LIMIT :limit FOR UPDATE SKIP LOCKED""")
                 .param("now", Times.toDb(now)).param("limit", limit).query(MAPPER).list();
     }
 
     public List<Payment> listForAccounts(List<UUID> accountIds, int limit, int offset) {
-        return jdbc.sql("SELECT " + COLUMNS + """
+        return jdbc.sql("SELECT " + COLUMNS + " " + """
                  FROM payments WHERE payer_account_id IN (:ids) OR payee_account_id IN (:ids)
                  ORDER BY created_at DESC, id LIMIT :limit OFFSET :offset""")
                 .param("ids", accountIds).param("limit", limit).param("offset", offset).query(MAPPER).list();

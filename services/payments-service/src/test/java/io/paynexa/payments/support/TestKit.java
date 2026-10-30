@@ -61,7 +61,7 @@ public final class TestKit implements AutoCloseable {
                 new PaymentsProperties.Idempotency(Duration.ofDays(7)),
                 new PaymentsProperties.Risk(limits, Map.of()),
                 new PaymentsProperties.Outbox(Duration.ofMillis(50), 100, 3, Duration.ofMillis(10), Duration.ofSeconds(1), Duration.ofSeconds(2), false),
-                new PaymentsProperties.Rail(Duration.ofMillis(50), 10, Duration.ofSeconds(30), Duration.ofMillis(10), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofHours(1), false),
+                new PaymentsProperties.Rail(Duration.ofMillis(50), 10, Duration.ofSeconds(30), Duration.ofMillis(10), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofHours(1), 5, false),
                 new PaymentsProperties.Sandbox(true),
                 new PaymentsProperties.Reconciliation(Duration.ofMinutes(5), Duration.ofMinutes(15), false));
     }

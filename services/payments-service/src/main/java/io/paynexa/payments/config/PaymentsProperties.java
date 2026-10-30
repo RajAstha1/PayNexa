@@ -51,6 +51,7 @@ public record PaymentsProperties(
             @DefaultValue("30m") Duration maxBackoff,
             @DefaultValue("5s") Duration callTimeout,
             @DefaultValue("1h") Duration stuckAfter,
+            @DefaultValue("20") int maxAttempts,
             @DefaultValue("true") boolean workerEnabled) {}
 
     /** Synthetic-money helpers. Must stay disabled anywhere real value could be affected. */
