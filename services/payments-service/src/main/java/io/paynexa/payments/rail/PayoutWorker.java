@@ -48,6 +48,12 @@ public class PayoutWorker {
         this.config = props.rail();
         this.clock = clock;
         this.meters = meters;
+        // Register every outcome up front so the series exist from the first scrape; an absent counter cannot be
+        // alerted on with a rate or "no data" rule.
+        for (var outcome : List.of("settled", "rejected", "pending", "unavailable", "error")) {
+            meters.counter("paynexa.payouts.rail", "outcome", outcome);
+        }
+        meters.counter("paynexa.payouts.attempts_exhausted");
     }
 
     /** One pass. Returns the number of payouts that reached a final state. */

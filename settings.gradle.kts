@@ -7,4 +7,5 @@ include(
     "services:identity-service",
     "services:payments-service",
     "services:notification-service",
+    "system-tests",
 )
