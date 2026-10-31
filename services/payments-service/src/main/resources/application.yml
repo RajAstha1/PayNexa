@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: payments-service
+  datasource:
+    # Runtime role: DML only. Flyway uses the separate migrator role below. See docs/ops/DATABASE.md.
+    url: ${PAYMENTS_DB_URL:jdbc:postgresql://localhost:5432/paynexa?currentSchema=payments}
+    username: ${PAYMENTS_DB_USER:payments_app}
+    password: ${PAYMENTS_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${PAYMENTS_DB_POOL:20}
+      connection-timeout: 3000
+      validation-timeout: 2000
+  flyway:
+    schemas: payments
+    default-schema: payments
+    user: ${PAYMENTS_DB_MIGRATOR_USER:payments_migrator}
+    password: ${PAYMENTS_DB_MIGRATOR_PASSWORD:}
+  jackson:
+    default-property-inclusion: non_null
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+        max.block.ms: 5000
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  port: ${SERVER_PORT:8082}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  health:
+    readinessstate:
+      enabled: true
+    livenessstate:
+      enabled: true
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    root: INFO
+    io.paynexa: INFO
+
+paynexa:
+  security:
+    jwt:
+      # PEM-encoded RSA public key of identity-service. No default on purpose: the service refuses to start without it.
+      public-key: ${PAYNEXA_JWT_PUBLIC_KEY:}
+  payments:
+    sandbox:
+      funding-enabled: ${PAYNEXA_SANDBOX_FUNDING:false}

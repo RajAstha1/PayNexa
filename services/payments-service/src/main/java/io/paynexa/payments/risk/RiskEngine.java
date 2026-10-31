@@ -12,6 +12,7 @@ public class RiskEngine {
     private final List<RiskRule> rules;
     private final PaymentsProperties props;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public RiskEngine(PaymentsProperties props) {
         this(props, Rules.defaults());
     }

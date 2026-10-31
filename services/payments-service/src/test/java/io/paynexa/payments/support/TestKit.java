@@ -63,7 +63,8 @@ public final class TestKit implements AutoCloseable {
                 new PaymentsProperties.Outbox(Duration.ofMillis(50), 100, 3, Duration.ofMillis(10), Duration.ofSeconds(1), Duration.ofSeconds(2), false),
                 new PaymentsProperties.Rail(Duration.ofMillis(50), 10, Duration.ofSeconds(30), Duration.ofMillis(10), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofHours(1), 5, false),
                 new PaymentsProperties.Sandbox(true),
-                new PaymentsProperties.Reconciliation(Duration.ofMinutes(5), Duration.ofMinutes(15), false));
+                new PaymentsProperties.Reconciliation(Duration.ofMinutes(5), Duration.ofMinutes(15), false),
+                new PaymentsProperties.RateLimit(20, 2, 120, 20, false));
     }
 
     /** Generous limits so ordinary tests are not affected by risk rules; risk tests pass their own. */

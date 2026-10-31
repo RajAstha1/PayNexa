@@ -15,7 +15,8 @@ public record PaymentsProperties(
         @DefaultValue Outbox outbox,
         @DefaultValue Rail rail,
         @DefaultValue Sandbox sandbox,
-        @DefaultValue Reconciliation reconciliation) {
+        @DefaultValue Reconciliation reconciliation,
+        @DefaultValue RateLimit rateLimit) {
 
     public record Idempotency(@DefaultValue("7d") Duration retention) {}
 
@@ -61,4 +62,12 @@ public record PaymentsProperties(
             @DefaultValue("5m") Duration interval,
             @DefaultValue("15m") Duration outboxStaleAfter,
             @DefaultValue("true") boolean scheduled) {}
+
+    /** Per-instance token buckets; see TokenBucketRateLimiter for what that does and does not protect. */
+    public record RateLimit(
+            @DefaultValue("20") int paymentsBurst,
+            @DefaultValue("2") double paymentsPerSecond,
+            @DefaultValue("120") int generalBurst,
+            @DefaultValue("20") double generalPerSecond,
+            @DefaultValue("false") boolean trustForwardedHeader) {}
 }
