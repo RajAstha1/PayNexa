@@ -43,9 +43,12 @@ class AdminController {
     private final PaymentRepository paymentRepo;
     private final ReconciliationService reconciliation;
     private final OutboxRepository outbox;
+    private final io.paynexa.payments.persistence.HistoryRepository audit;
 
     AdminController(LifecycleService lifecycle, AccountService accounts, PaymentService payments,
-                    PaymentRepository paymentRepo, ReconciliationService reconciliation, OutboxRepository outbox) {
+                    PaymentRepository paymentRepo, ReconciliationService reconciliation, OutboxRepository outbox,
+                    io.paynexa.payments.persistence.HistoryRepository audit) {
+        this.audit = audit;
         this.lifecycle = lifecycle;
         this.accounts = accounts;
         this.payments = payments;
@@ -94,15 +97,19 @@ class AdminController {
     }
 
     @PostMapping("/reconciliation/run")
-    Map<String, Object> reconcile() {
+    Map<String, Object> reconcile(@AuthenticationPrincipal Jwt jwt) {
         var report = reconciliation.run("MANUAL");
+        audit.audit(Actors.from(jwt).name(), "RECONCILIATION_RUN", "reconciliation", report.runId().toString(),
+                "{\"findings\":%d}".formatted(report.findings().size()));
         return Map.of("runId", report.runId(), "clean", report.clean(),
                 "findings", report.findings().stream().map(AdminController::view).toList());
     }
 
     @PostMapping("/outbox/requeue-dead")
-    Map<String, Object> requeueDead() {
-        return Map.of("requeued", outbox.requeueDead());
+    Map<String, Object> requeueDead(@AuthenticationPrincipal Jwt jwt) {
+        int requeued = outbox.requeueDead();
+        audit.audit(Actors.from(jwt).name(), "OUTBOX_REQUEUE_DEAD", "outbox", "all", "{\"requeued\":%d}".formatted(requeued));
+        return Map.of("requeued", requeued);
     }
 
     private static Map<String, String> view(Finding f) {
