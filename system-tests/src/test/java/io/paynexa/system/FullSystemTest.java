@@ -89,17 +89,20 @@ class FullSystemTest {
         String pg = "jdbc:postgresql://localhost:" + PostgresTestDatabase.port() + "/" + database + "?currentSchema=";
 
         var keys = new TestTokens();
+        var privateKeyFile = Files.writeString(logDir.resolve("jwt-private.pem"), keys.privateKeyPem());
+        var publicKeyFile = Files.writeString(logDir.resolve("jwt-public.pem"), keys.publicKeyPem());
+        var dbPasswordFile = Files.writeString(logDir.resolve("payments-db-pw"), "pa\n");   // trailing newline, like real secret files
         var common = new LinkedHashMap<String, String>();
         common.put("KAFKA_BOOTSTRAP_SERVERS", kafka.getBrokersAsString());
-        common.put("PAYNEXA_JWT_PUBLIC_KEY", keys.publicKeyPem());
+        common.put("PAYNEXA_JWT_PUBLIC_KEY_FILE", publicKeyFile.toString());       // *_FILE delivery: no secret in the environment
 
         register("identity-service", 0, merge(common, Map.of(
                 "IDENTITY_DB_URL", pg + "identity", "IDENTITY_DB_USER", "identity_app", "IDENTITY_DB_PASSWORD", "ia",
                 "IDENTITY_DB_MIGRATOR_USER", "identity_migrator", "IDENTITY_DB_MIGRATOR_PASSWORD", "im",
-                "PAYNEXA_JWT_PRIVATE_KEY", keys.privateKeyPem(),
+                "PAYNEXA_JWT_PRIVATE_KEY_FILE", privateKeyFile.toString(),
                 "PAYNEXA_BOOTSTRAP_ADMIN_EMAIL", "ops.admin@example.com", "PAYNEXA_BOOTSTRAP_ADMIN_PASSWORD", "an-administrator-passphrase-1")));
         register("payments-service", 0, merge(common, Map.of(
-                "PAYMENTS_DB_URL", pg + "payments", "PAYMENTS_DB_USER", "payments_app", "PAYMENTS_DB_PASSWORD", "pa",
+                "PAYMENTS_DB_URL", pg + "payments", "PAYMENTS_DB_USER", "payments_app", "PAYMENTS_DB_PASSWORD_FILE", dbPasswordFile.toString(),
                 "PAYMENTS_DB_MIGRATOR_USER", "payments_migrator", "PAYMENTS_DB_MIGRATOR_PASSWORD", "pm",
                 "PAYNEXA_SANDBOX_FUNDING", "true")));
         register("notification-service", 0, merge(common, Map.of(
@@ -419,7 +422,7 @@ class FullSystemTest {
     void noSecretsOrCredentialsAppearInAnyServiceLog() throws Exception {
         var all = new ArrayList<String>();
         try (var files = Files.list(logDir)) {
-            for (File f : files.map(Path::toFile).toList()) {
+            for (File f : files.map(Path::toFile).filter(x -> x.getName().endsWith(".log")).toList()) {
                 all.add(Files.readString(f.toPath()));
             }
         }
@@ -427,7 +430,8 @@ class FullSystemTest {
         assertThat(logs).isNotBlank()
                 .doesNotContain(PASSWORD).doesNotContain("an-administrator-passphrase-1")
                 .doesNotContain(aliceToken).doesNotContain(adminToken)
-                .doesNotContain("BEGIN PRIVATE KEY").doesNotContain("bank:e2e-ok");
+                .doesNotContain("BEGIN PRIVATE KEY").doesNotContain("bank:e2e-ok")
+                .doesNotContain(Files.readString(logDir.resolve("jwt-private.pem")).lines().skip(1).findFirst().orElseThrow());
         assertThat(logs).as("structured JSON logs with correlation ids").contains("\"correlationId\"");
     }
 

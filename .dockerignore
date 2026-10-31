@@ -1,0 +1,7 @@
+_archive/
+.git/
+.gradle/
+**/build/
+secrets/
+.env
+*.pem
