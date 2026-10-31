@@ -46,6 +46,11 @@ public final class TestTokens {
         return "-----BEGIN PUBLIC KEY-----\n" + b64 + "\n-----END PUBLIC KEY-----";
     }
 
+    public String privateKeyPem() {
+        var b64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8)).encodeToString(pair.getPrivate().getEncoded());
+        return "-----BEGIN PRIVATE KEY-----\n" + b64 + "\n-----END PRIVATE KEY-----";
+    }
+
     public String user(UUID userId) {
         return token(userId, List.of("USER"), ISSUER, AUDIENCE, Instant.now().plusSeconds(300));
     }
