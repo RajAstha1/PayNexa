@@ -57,6 +57,20 @@ public final class PostgresTestDatabase {
         return name;
     }
 
+    /** JDBC URL of a new database that already has the schema migrated, for Spring contexts that build their own pool. */
+    public static String migratedJdbcUrl(String schema, String... locations) {
+        var ds = (PGSimpleDataSource) migrated(schema, locations);
+        return "jdbc:postgresql://localhost:" + port() + "/" + ds.getDatabaseName() + "?currentSchema=" + schema;
+    }
+
+    public static String superuser() {
+        return "postgres";
+    }
+
+    public static String superuserPassword() {
+        return "postgres";
+    }
+
     public static DataSource emptyDatabase() {
         return dataSourceFor(createDatabase(), "postgres", null);
     }

@@ -8,4 +8,5 @@ dependencies {
     api("org.flywaydb:flyway-database-postgresql")
     api("org.postgresql:postgresql")
     api("org.junit.jupiter:junit-jupiter-api")
+    api("org.springframework.security:spring-security-oauth2-jose")
 }
