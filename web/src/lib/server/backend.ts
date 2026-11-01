@@ -33,7 +33,8 @@ export type BackendResult =
   | { kind: "unavailable" };
 
 const FORWARDED_RESPONSE_HEADERS = ["content-type", "idempotent-replay", "retry-after", "x-correlation-id"];
-const SAFE_QUERY = /^\?[A-Za-z0-9=&._-]{0,100}$/;
+/** Filters (status, kind, direction, YYYY-MM-DD dates, paging) fit comfortably; anything with other characters is dropped, not forwarded. */
+const SAFE_QUERY = /^\?[A-Za-z0-9=&._-]{0,220}$/;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9._:-]{8,64}$/;
 const CORRELATION_ID = /^[A-Za-z0-9._-]{8,64}$/;
 

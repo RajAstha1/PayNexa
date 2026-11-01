@@ -103,6 +103,13 @@ describe("callBackend", () => {
     expect(((fetchImpl.mock.calls[1] as unknown as [string, RequestInit])[1].headers as Record<string, string>)["Idempotency-Key"]).toBe("good-key-12345");
   });
 
+  it("forwards a realistic filtered payments query intact", async () => {
+    const fetchImpl = vi.fn(async () => json(200, []));
+    const q = "?status=COMPLETED&kind=TRANSFER&direction=out&from=2026-01-01&to=2026-12-31&limit=21&offset=40";
+    await callBackend(request({ path: "payments", search: q }), neverRefresh(), fetchImpl as unknown as typeof fetch);
+    expect((fetchImpl.mock.calls[0] as unknown as [string])[0]).toBe("http://localhost:8082/payments" + q);
+  });
+
   it("many concurrent requests with an expired token trigger exactly one refresh", async () => {
     const upstream = vi.fn(async () => { await new Promise((r) => setTimeout(r, 10)); return tokens(); });
     const coordinator = new RefreshCoordinator(upstream);

@@ -119,12 +119,82 @@ public class PaymentRepository {
                 .param("now", Times.toDb(now)).param("limit", limit).query(MAPPER).list();
     }
 
-    public List<Payment> listForAccounts(List<UUID> accountIds, int limit, int offset) {
-        return jdbc.sql("SELECT " + COLUMNS + " " + """
-                 FROM payments WHERE payer_account_id IN (:ids) OR payee_account_id IN (:ids)
-                 ORDER BY created_at DESC, id LIMIT :limit OFFSET :offset""")
-                .param("ids", accountIds).param("limit", limit).param("offset", offset).query(MAPPER).list();
+    public enum Direction { IN, OUT }
+
+    /** Optional filters for a user's payment list. Every field is bound as a parameter; nothing is concatenated into SQL. */
+    public record Filter(PaymentStatus status, PaymentKind kind, Direction direction, Instant from, Instant toExclusive) {
+        public static Filter none() {
+            return new Filter(null, null, null, null, null);
+        }
     }
+
+    public List<Payment> listForAccounts(List<UUID> accountIds, int limit, int offset) {
+        return listForAccounts(accountIds, Filter.none(), limit, offset);
+    }
+
+    /**
+     * Payments touching any of {@code accountIds}, newest first, with optional filters. "Direction" is relative to the
+     * caller: OUT = their account is the payer, IN = their account is the payee.
+     */
+    public List<Payment> listForAccounts(List<UUID> accountIds, Filter f, int limit, int offset) {
+        var where = new StringBuilder("(payer_account_id IN (:ids) OR payee_account_id IN (:ids))");
+        if (f.direction() == Direction.OUT) where.append(" AND payer_account_id IN (:ids)");
+        if (f.direction() == Direction.IN) where.append(" AND payee_account_id IN (:ids)");
+        if (f.status() != null) where.append(" AND status = :status");
+        if (f.kind() != null) where.append(" AND kind = :kind");
+        if (f.from() != null) where.append(" AND created_at >= :from");
+        if (f.toExclusive() != null) where.append(" AND created_at < :to");
+        var spec = jdbc.sql("SELECT " + COLUMNS + " FROM payments WHERE " + where
+                + " ORDER BY created_at DESC, id LIMIT :limit OFFSET :offset")
+                .param("ids", accountIds).param("limit", limit).param("offset", offset);
+        if (f.status() != null) spec = spec.param("status", f.status().name());
+        if (f.kind() != null) spec = spec.param("kind", f.kind().name());
+        if (f.from() != null) spec = spec.param("from", Times.toDb(f.from()));
+        if (f.toExclusive() != null) spec = spec.param("to", Times.toDb(f.toExclusive()));
+        return spec.query(MAPPER).list();
+    }
+
+    public record DayBucket(java.time.LocalDate day, String currency, long incomingMinor, long outgoingMinor, long count) {}
+
+    public record Totals(String currency, long incomingMinor, long outgoingMinor, long count) {}
+
+    /**
+     * Money movement per UTC day and currency for the given accounts. Only payments that moved money count (COMPLETED,
+     * SUBMITTED, SETTLED). Movement between two of the caller's own accounts is internal and excluded from both sides.
+     */
+    public List<DayBucket> dailyVolume(List<UUID> accountIds, Instant from, Instant toExclusive) {
+        return jdbc.sql(STATS_FROM + """
+                SELECT (created_at AT TIME ZONE 'UTC')::date AS day, currency,
+                       COALESCE(SUM(amount_minor) FILTER (WHERE incoming), 0) AS incoming,
+                       COALESCE(SUM(amount_minor) FILTER (WHERE outgoing), 0) AS outgoing,
+                       count(*) AS n
+                  FROM moved WHERE incoming OR outgoing GROUP BY 1, 2 ORDER BY 1, 2""")
+                .param("ids", accountIds).param("from", Times.toDb(from)).param("to", Times.toDb(toExclusive))
+                .query((rs, n) -> new DayBucket(rs.getObject("day", java.time.LocalDate.class), rs.getString("currency"),
+                        rs.getLong("incoming"), rs.getLong("outgoing"), rs.getLong("n"))).list();
+    }
+
+    public List<Totals> totals(List<UUID> accountIds, Instant from, Instant toExclusive) {
+        return jdbc.sql(STATS_FROM + """
+                SELECT currency,
+                       COALESCE(SUM(amount_minor) FILTER (WHERE incoming), 0) AS incoming,
+                       COALESCE(SUM(amount_minor) FILTER (WHERE outgoing), 0) AS outgoing,
+                       count(*) AS n
+                  FROM moved WHERE incoming OR outgoing GROUP BY currency ORDER BY currency""")
+                .param("ids", accountIds).param("from", Times.toDb(from)).param("to", Times.toDb(toExclusive))
+                .query((rs, n) -> new Totals(rs.getString("currency"), rs.getLong("incoming"), rs.getLong("outgoing"), rs.getLong("n"))).list();
+    }
+
+    private static final String STATS_FROM = """
+            WITH moved AS (
+                SELECT created_at, currency, amount_minor,
+                       (payee_account_id IN (:ids) AND NOT (payer_account_id IN (:ids))) AS incoming,
+                       (payer_account_id IN (:ids) AND NOT COALESCE(payee_account_id IN (:ids), false)) AS outgoing
+                  FROM payments
+                 WHERE (payer_account_id IN (:ids) OR payee_account_id IN (:ids))
+                   AND status IN ('COMPLETED', 'SUBMITTED', 'SETTLED')
+                   AND created_at >= :from AND created_at < :to)
+            """;
 
     public List<Payment> listPendingReview(int limit) {
         return jdbc.sql("SELECT " + COLUMNS + " FROM payments WHERE status = 'PENDING_REVIEW' ORDER BY created_at LIMIT :limit")

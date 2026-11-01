@@ -5,6 +5,8 @@ import io.paynexa.payments.api.Dtos.PayoutRequest;
 import io.paynexa.payments.api.Dtos.TransferRequest;
 import io.paynexa.payments.domain.DomainException;
 import io.paynexa.payments.domain.Money;
+import io.paynexa.payments.domain.PaymentKind;
+import io.paynexa.payments.domain.PaymentStatus;
 import io.paynexa.payments.persistence.AccountRepository;
 import io.paynexa.payments.persistence.HistoryRepository;
 import io.paynexa.payments.persistence.PaymentRepository;
@@ -25,6 +27,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,8 +43,10 @@ class PaymentController {
     private final PaymentRepository paymentRepo;
     private final AccountRepository accountRepo;
     private final HistoryRepository history;
+    private final Clock clock;
 
-    PaymentController(PaymentService payments, PaymentRepository paymentRepo, AccountRepository accountRepo, HistoryRepository history) {
+    PaymentController(PaymentService payments, PaymentRepository paymentRepo, AccountRepository accountRepo, HistoryRepository history, Clock clock) {
+        this.clock = clock;
         this.payments = payments;
         this.paymentRepo = paymentRepo;
         this.accountRepo = accountRepo;
@@ -81,17 +90,95 @@ class PaymentController {
                 .toList();
     }
 
+    /**
+     * The caller's payments, newest first. Optional filters: {@code status}, {@code kind}, {@code direction} (in|out relative
+     * to the caller's accounts) and an inclusive UTC date range {@code from}/{@code to} (YYYY-MM-DD). Page with
+     * {@code limit} (max 100) and {@code offset}; ask for limit+1 to learn whether another page exists.
+     */
     @GetMapping
     List<PaymentResponse> list(@AuthenticationPrincipal Jwt jwt,
                                @RequestParam(defaultValue = "50") int limit,
-                               @RequestParam(defaultValue = "0") int offset) {
+                               @RequestParam(defaultValue = "0") int offset,
+                               @RequestParam(required = false) String status,
+                               @RequestParam(required = false) String kind,
+                               @RequestParam(required = false) String direction,
+                               @RequestParam(required = false) String from,
+                               @RequestParam(required = false) String to) {
         var actor = Actors.from(jwt);
         var mine = accountRepo.findByOwner(actor.userId()).stream().map(a -> a.id()).toList();
         if (mine.isEmpty()) {
             return List.of();
         }
-        return paymentRepo.listForAccounts(mine, Math.min(Math.max(limit, 1), 100), Math.max(offset, 0))
+        var filter = new PaymentRepository.Filter(
+                parseEnum(PaymentStatus.class, status, "status"), parseEnum(PaymentKind.class, kind, "kind"),
+                parseEnum(PaymentRepository.Direction.class, direction, "direction"),
+                parseDate(from, "from") == null ? null : parseDate(from, "from").atStartOfDay(ZoneOffset.UTC).toInstant(),
+                parseDate(to, "to") == null ? null : parseDate(to, "to").plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        if (filter.from() != null && filter.toExclusive() != null && !filter.from().isBefore(filter.toExclusive())) {
+            throw new DomainException("INVALID_FILTER", "'from' must not be after 'to'");
+        }
+        return paymentRepo.listForAccounts(mine, filter, Math.min(Math.max(limit, 1), 101), Math.max(offset, 0))
                 .stream().map(PaymentResponse::from).toList();
+    }
+
+    /**
+     * Money movement for charts: per UTC day and currency over the last {@code days} (7, 30, 90 or 365), plus totals for that
+     * period and for the equally long period before it. Only payments that moved money count; transfers between the
+     * caller's own accounts are internal and excluded. Never converts currencies.
+     */
+    @GetMapping("/stats")
+    StatsResponse stats(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "30") int days) {
+        if (days != 7 && days != 30 && days != 90 && days != 365) {
+            throw new DomainException("INVALID_FILTER", "days must be 7, 30, 90 or 365");
+        }
+        var mine = accountRepo.findByOwner(Actors.from(jwt).userId()).stream().map(a -> a.id()).toList();
+        var today = LocalDate.now(clock.withZone(ZoneOffset.UTC));
+        var start = today.minusDays(days - 1L);
+        var end = today.plusDays(1);
+        var prevStart = start.minusDays(days);
+        if (mine.isEmpty()) {
+            return new StatsResponse(days, start, today, List.of(), List.of(), List.of());
+        }
+        var buckets = paymentRepo.dailyVolume(mine, at(start), at(end)).stream()
+                .map(b -> new Bucket(b.day(), b.currency(), Money.format(b.incomingMinor(), b.currency()),
+                        Money.format(b.outgoingMinor(), b.currency()), b.count())).toList();
+        var current = paymentRepo.totals(mine, at(start), at(end)).stream().map(StatsTotal::from).toList();
+        var previous = paymentRepo.totals(mine, at(prevStart), at(start)).stream().map(StatsTotal::from).toList();
+        return new StatsResponse(days, start, today, buckets, current, previous);
+    }
+
+    record Bucket(LocalDate date, String currency, String incoming, String outgoing, long count) {}
+
+    record StatsTotal(String currency, String incoming, String outgoing, long count) {
+        static StatsTotal from(PaymentRepository.Totals t) {
+            return new StatsTotal(t.currency(), Money.format(t.incomingMinor(), t.currency()), Money.format(t.outgoingMinor(), t.currency()), t.count());
+        }
+    }
+
+    record StatsResponse(int days, LocalDate from, LocalDate to, List<Bucket> buckets, List<StatsTotal> totals, List<StatsTotal> previousTotals) {}
+
+    private static Instant at(LocalDate d) {
+        return d.atStartOfDay(ZoneOffset.UTC).toInstant();
+    }
+
+    private static <E extends Enum<E>> E parseEnum(Class<E> type, String value, String name) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Enum.valueOf(type, value.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new DomainException("INVALID_FILTER", "Unknown value for '" + name + "'");
+        }
+    }
+
+    private static LocalDate parseDate(String value, String name) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            var d = LocalDate.parse(value.trim());
+            if (d.isBefore(LocalDate.of(2000, 1, 1)) || d.isAfter(LocalDate.of(2100, 1, 1))) throw new DateTimeParseException("range", value, 0);
+            return d;
+        } catch (DateTimeParseException e) {
+            throw new DomainException("INVALID_FILTER", "'" + name + "' must be a date like 2026-10-31");
+        }
     }
 
     record HistoryEntry(String from, String to, java.time.Instant at) {}
