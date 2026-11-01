@@ -52,6 +52,13 @@ paynexa:
       max-failed-attempts: 5
       duration: 15m
     bcrypt-cost: 12
+    # Per client address on /auth/*. Defaults are strict. Behind the web console every request arrives from one address
+    # unless the console forwards the user's address AND this service is told to trust it (only safe when the service is
+    # reachable solely through that trusted proxy).
+    rate-limit:
+      auth-burst: ${IDENTITY_AUTH_BURST:10}
+      auth-per-second: ${IDENTITY_AUTH_PER_SECOND:0.2}
+      trust-forwarded-header: ${IDENTITY_TRUST_FORWARDED_HEADER:false}
     # Optional first administrator for sandbox setups. Both must be set; the account is created only if no admin exists.
     bootstrap-admin-email: ${PAYNEXA_BOOTSTRAP_ADMIN_EMAIL:}
     bootstrap-admin-password: ${PAYNEXA_BOOTSTRAP_ADMIN_PASSWORD:}

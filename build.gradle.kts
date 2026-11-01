@@ -11,6 +11,19 @@ allprojects {
 subprojects {
     apply(plugin = "java-library")
 
+    // Pin the full resolved dependency graph in gradle.lockfile so builds are reproducible and vulnerability
+    // scanners (OSV, Dependabot) have an exact list to check. Refresh with: ./gradlew resolveAndLockAll --write-locks
+    dependencyLocking { lockAllConfigurations() }
+    tasks.register("resolveAndLockAll") {
+        notCompatibleWithConfigurationCache("Filters configurations at execution time")
+        doFirst {
+            require(gradle.startParameter.isWriteDependencyLocks) { "Run with --write-locks" }
+        }
+        doLast {
+            configurations.filter { it.isCanBeResolved }.forEach { it.resolve() }
+        }
+    }
+
     extensions.configure<JavaPluginExtension> {
         toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
     }

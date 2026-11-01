@@ -71,6 +71,26 @@ jobs:
       - name: Contended workload with invariant checks
         run: ./gradlew :services:payments-service:loadTest --no-daemon
 
+  web:
+    name: Web console (typecheck, unit tests, production build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
