@@ -59,3 +59,24 @@ const ERROR_TEXT: Record<string, string> = {
 export function errorText(code: string, fallback: string): string {
   return ERROR_TEXT[code] ?? fallback;
 }
+
+export type NotificationCategory = "payments" | "review" | "payouts" | "issues";
+export const NOTIFICATION_CATEGORIES: { id: NotificationCategory; label: string }[] = [
+  { id: "payments", label: "Payments" },
+  { id: "review", label: "Review" },
+  { id: "payouts", label: "Payouts" },
+  { id: "issues", label: "Issues" },
+];
+const NOTIFICATION_INFO: Record<string, { category: NotificationCategory; title: string; tone: Tone }> = {
+  PAYMENT_SENT: { category: "payments", title: "Payment sent", tone: "info" },
+  PAYMENT_RECEIVED: { category: "payments", title: "Payment received", tone: "good" },
+  PAYMENT_UNDER_REVIEW: { category: "review", title: "Held for review", tone: "warn" },
+  PAYOUT_SUBMITTED: { category: "payouts", title: "Payout submitted", tone: "info" },
+  PAYOUT_SETTLED: { category: "payouts", title: "Payout settled", tone: "good" },
+  PAYMENT_REJECTED: { category: "issues", title: "Payment rejected", tone: "bad" },
+  PAYMENT_FAILED: { category: "issues", title: "Payment failed", tone: "bad" },
+  PAYMENT_REVERSED: { category: "issues", title: "Payment reversed", tone: "neutral" },
+};
+export function notificationInfo(kind: string): { category: NotificationCategory; title: string; tone: Tone } {
+  return NOTIFICATION_INFO[kind] ?? { category: "payments", title: kind.toLowerCase().replace(/_/g, " "), tone: "neutral" };
+}

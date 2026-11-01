@@ -74,6 +74,41 @@ export interface SessionInfo {
   authenticated: boolean;
   userId: string | null;
   roles: string[];
+  /** The email used to sign in on this browser; display only. */
+  email?: string | null;
+}
+export interface StatsBucket {
+  date: string; // YYYY-MM-DD, UTC day
+  currency: string;
+  incoming: string;
+  outgoing: string;
+  count: number;
+}
+export interface StatsTotal {
+  currency: string;
+  incoming: string;
+  outgoing: string;
+  count: number;
+}
+export interface Stats {
+  days: number;
+  from: string;
+  to: string;
+  buckets: StatsBucket[];
+  totals: StatsTotal[];
+  previousTotals: StatsTotal[];
+}
+export type StatsDays = 7 | 30 | 90 | 365;
+export interface PaymentFilters {
+  limit?: number;
+  offset?: number;
+  status?: PaymentStatus;
+  kind?: PaymentKind;
+  direction?: "in" | "out";
+  from?: string; // YYYY-MM-DD, inclusive, UTC
+  to?: string;
+  accountId?: string;
+  q?: string;
 }
 
 export const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "INR", "CAD", "AUD", "CHF"] as const;

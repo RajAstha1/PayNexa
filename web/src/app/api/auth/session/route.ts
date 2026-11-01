@@ -3,7 +3,7 @@ import { clientIp } from "@/lib/server/client-ip";
 import { UpstreamError } from "@/lib/server/identity";
 import { decodeClaims, isExpiredOrExpiring } from "@/lib/server/jwt";
 import { sharedCoordinator } from "@/lib/server/refresh-coordinator";
-import { clearSessionCookies, readSession, setSessionCookies } from "@/lib/server/session-cookies";
+import { clearSessionCookies, readEmail, readSession, setSessionCookies } from "@/lib/server/session-cookies";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +11,18 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const { access, refresh } = readSession(req);
   const headers = { "Cache-Control": "no-store" };
-  const anonymous = () => NextResponse.json({ authenticated: false, userId: null, roles: [] }, { headers });
+  const email = readEmail(req);
+  const anonymous = () => NextResponse.json({ authenticated: false, userId: null, roles: [], email: null }, { headers });
 
   if (!isExpiredOrExpiring(access)) {
     const claims = decodeClaims(access);
-    return NextResponse.json({ authenticated: true, userId: claims?.userId, roles: claims?.roles ?? [] }, { headers });
+    return NextResponse.json({ authenticated: true, userId: claims?.userId, roles: claims?.roles ?? [], email }, { headers });
   }
   if (!refresh) return anonymous();
   try {
     const tokens = await sharedCoordinator().refresh(refresh, clientIp(req));
     const claims = decodeClaims(tokens.accessToken);
-    const res = NextResponse.json({ authenticated: true, userId: claims?.userId, roles: claims?.roles ?? [] }, { headers });
+    const res = NextResponse.json({ authenticated: true, userId: claims?.userId, roles: claims?.roles ?? [], email }, { headers });
     setSessionCookies(res, req, tokens);
     return res;
   } catch (error) {
@@ -30,6 +31,6 @@ export async function GET(req: NextRequest) {
       clearSessionCookies(res);
       return res;
     }
-    return NextResponse.json({ authenticated: false, userId: null, roles: [], unavailable: true }, { status: 503, headers });
+    return NextResponse.json({ authenticated: false, userId: null, roles: [], email: null, unavailable: true }, { status: 503, headers });
   }
 }

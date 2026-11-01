@@ -1,9 +1,9 @@
 "use client";
-
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { AdminAccounts, AdminOperations, AdminReconciliation, ReviewQueue } from "@/components/admin-panels";
-import { Alert, Card } from "@/components/ui";
+import { EmptyState, Alert, Card, PageHeader, Skeleton } from "@/components/ui";
 
 const TABS = [
   { id: "review", label: "Review queue" },
@@ -11,28 +11,21 @@ const TABS = [
   { id: "reconciliation", label: "Reconciliation" },
   { id: "operations", label: "Operations" },
 ] as const;
-
 type TabId = (typeof TABS)[number]["id"];
 
-export default function AdminPage() {
+function AdminView() {
   const auth = useAuth();
-  const [tab, setTab] = useState<TabId>("review");
+  const params = useSearchParams();
+  const requested = TABS.find((t) => t.id === params.get("tab"))?.id;
+  const [tab, setTab] = useState<TabId>(requested ?? "review");
 
+  // The services enforce ROLE_ADMIN on every call; this only avoids showing tools that would be refused.
   if (!auth.isAdmin) {
-    return (
-      <Card>
-        <h1>Administrators only</h1>
-        <p className="muted">Your account does not have access to this area.</p>
-      </Card>
-    );
+    return <Card><EmptyState icon="lock" title="Administrators only">Your account does not have access to this area.</EmptyState></Card>;
   }
-
   return (
     <div className="stack">
-      <div className="page-head">
-        <h1>Administration</h1>
-        <p className="muted">Every action here is checked again by the services and written to the audit log.</p>
-      </div>
+      <PageHeader title="Administration" subtitle="Every action here is checked again by the services and written to the audit log." />
       <Alert tone="info">Sandbox tools such as funding create synthetic money. They are disabled in the service unless sandbox funding is switched on.</Alert>
       <div className="tabs" role="tablist" aria-label="Administration sections">
         {TABS.map((t) => (
@@ -48,5 +41,13 @@ export default function AdminPage() {
         {tab === "operations" && <AdminOperations />}
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<Skeleton height={320} radius={22} />}>
+      <AdminView />
+    </Suspense>
   );
 }

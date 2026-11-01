@@ -1,42 +1,5 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
-
-const PASSWORD = "correct horse battery staple";
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@paynexa.example";
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "";
-const SHOTS = "e2e/screenshots";
-
-const uid = () => Math.random().toString(36).slice(2, 8);
-
-async function signUp(page: Page, email: string) {
-  await page.goto("/register");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
-}
-
-async function signIn(page: Page, email: string, password: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
-}
-
-async function openAccount(page: Page): Promise<string> {
-  await page.goto("/accounts");
-  await page.getByRole("button", { name: "Open account" }).click();
-  await expect(page.getByText("Your USD account is ready.")).toBeVisible();
-  const link = page.getByRole("link", { name: "USD" }).first();
-  await link.click();
-  await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}/);
-  return page.url().split("/").pop()!;
-}
-
-async function newContextPage(browser: Browser) {
-  const context = await browser.newContext();
-  return { context, page: await context.newPage() };
-}
+import { expect, test } from "@playwright/test";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, PASSWORD, SHOTS, newContextPage, openAccount, signIn, signOut, signUp, uid } from "./helpers";
 
 test.describe("anonymous visitors", () => {
   test("are sent to sign in and returned to where they were going", async ({ page }) => {
@@ -105,7 +68,7 @@ test.describe("a customer's journey", () => {
 
     // --- Alice sees the money
     await alice.page.goto(`/accounts/${aliceAccount}`);
-    await expect(alice.page.locator(".balance")).toHaveText("$500.00");
+    await expect(alice.page.getByTestId("account-balance")).toHaveText("$500.00");
     await alice.page.screenshot({ path: `${SHOTS}/03-account.png`, fullPage: true });
 
     // --- Alice sends 25.50 to Bob: validation, review step, confirmation
@@ -125,13 +88,13 @@ test.describe("a customer's journey", () => {
 
     // --- balances moved exactly
     await alice.page.goto(`/accounts/${aliceAccount}`);
-    await expect(alice.page.locator(".balance")).toHaveText("$474.50");
+    await expect(alice.page.getByTestId("account-balance")).toHaveText("$474.50");
     await bob.page.goto(`/accounts/${bobAccount}`);
-    await expect(bob.page.locator(".balance")).toHaveText("$25.50");
+    await expect(bob.page.getByTestId("account-balance")).toHaveText("$25.50");
 
     // --- Alice's payment page shows the timeline
     await alice.page.goto("/payments");
-    await alice.page.getByRole("link").filter({ hasText: /\d{4}/ }).first().click();
+    await alice.page.locator("a.table-link").first().click();
     await expect(alice.page.getByRole("list", { name: "Status history" })).toContainText("Completed");
     await alice.page.screenshot({ path: `${SHOTS}/06-payment-detail.png`, fullPage: true });
 
@@ -174,7 +137,7 @@ test.describe("a customer's journey", () => {
 
   test("signing out ends the session, and the back button does not bring the data back", async ({ page }) => {
     await signUp(page, `out-${uid()}@example.com`);
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOut(page);
     await expect(page).toHaveURL(/\/login/);
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login\?next=%2Fdashboard/);
@@ -187,7 +150,7 @@ test.describe("tokens never reach page JavaScript", () => {
   test("auth cookies are HttpOnly and SameSite=Strict, and invisible to document.cookie", async ({ page }) => {
     await signUp(page, `cookie-${uid()}@example.com`);
     const cookies = (await page.context().cookies()).filter((c) => c.name.startsWith("pn_"));
-    expect(cookies.map((c) => c.name).sort()).toEqual(["pn_at", "pn_rt"]);
+    expect(cookies.map((c) => c.name).sort()).toEqual(["pn_at", "pn_email", "pn_rt"]);
     for (const c of cookies) {
       expect(c.httpOnly, c.name).toBe(true);
       expect(c.sameSite, c.name).toBe("Strict");
@@ -234,7 +197,7 @@ test.describe("administration", () => {
     await expect(admin.page.getByText(/is now completed/)).toBeVisible();
 
     await bob.page.goto(`/accounts/${to}`);
-    await expect(bob.page.locator(".balance")).toHaveText("$3,000.00");
+    await expect(bob.page.getByTestId("account-balance")).toHaveText("$3,000.00");
 
     await admin.page.getByRole("tab", { name: "Reconciliation" }).click();
     await admin.page.getByRole("button", { name: "Run reconciliation" }).click();

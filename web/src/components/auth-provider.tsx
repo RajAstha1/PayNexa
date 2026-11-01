@@ -7,6 +7,7 @@ import { api, setSessionEndedHandler } from "@/lib/client/api";
 interface AuthValue {
   status: "loading" | "authenticated" | "anonymous" | "unavailable";
   userId: string | null;
+  email: string | null;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -28,10 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
 
-  const apply = useCallback((s: { authenticated: boolean; userId: string | null; roles: string[] }) => {
+  const [email, setEmail] = useState<string | null>(null);
+  const apply = useCallback((s: { authenticated: boolean; userId: string | null; roles: string[]; email?: string | null }) => {
     setStatus(s.authenticated ? "authenticated" : "anonymous");
     setUserId(s.userId);
     setRoles(s.roles);
+    setEmail(s.email ?? null);
   }, []);
 
   // Ask the BFF who we are. It renews an expired access token from the refresh cookie when it can.
@@ -51,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("anonymous");
       setUserId(null);
       setRoles([]);
+      setEmail(null);
     });
     return () => setSessionEndedHandler(null);
   }, []);
@@ -71,13 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("anonymous");
       setUserId(null);
       setRoles([]);
+      setEmail(null);
       router.replace("/login");
     }
   }, [router]);
 
   const value = useMemo<AuthValue>(
-    () => ({ status, userId, isAdmin: roles.includes("ADMIN"), signIn, signUp, signOut }),
-    [status, userId, roles, signIn, signUp, signOut],
+    () => ({ status, userId, email, isAdmin: roles.includes("ADMIN"), signIn, signUp, signOut }),
+    [status, userId, email, roles, signIn, signUp, signOut],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { callBackend, type BackendRequest } from "@/lib/server/backend";
+import { callBackend, sanitizeQuery, type BackendRequest } from "@/lib/server/backend";
 import { UpstreamError } from "@/lib/server/identity";
 import { RefreshCoordinator } from "@/lib/server/refresh-coordinator";
 import { fakeToken, json, tokens } from "./helpers";
@@ -110,6 +110,20 @@ describe("callBackend", () => {
     expect((fetchImpl.mock.calls[0] as unknown as [string])[0]).toBe("http://localhost:8082/payments" + q);
   });
 
+  it("rebuilds the query from an allow-list: unknown names, repeats and malformed values never reach the service", () => {
+    expect(sanitizeQuery("")).toBe("");
+    expect(sanitizeQuery("?limit=20&evil=1&limit=99&status=not valid&direction=sideways")).toBe("?limit=20");
+    expect(sanitizeQuery("?__proto__=x&constructor=y&toString=z")).toBe("");
+    expect(sanitizeQuery("?accountId=not-a-uuid")).toBe("");
+    expect(sanitizeQuery("?q=" + "x".repeat(51))).toBe("");
+    expect(sanitizeQuery("?q=abc%00def")).toBe("");
+    expect(sanitizeQuery("?" + "limit=1&".repeat(80))).toBe("");
+  });
+  it("carries free-text search through, re-encoded", () => {
+    expect(sanitizeQuery("?q=rent%20%26%20bills%3D1")).toBe("?q=rent+%26+bills%3D1");
+    expect(sanitizeQuery("?q=%E2%82%AC50")).toBe("?q=%E2%82%AC50");
+    expect(sanitizeQuery("?accountId=3e5e4c1a-9a4d-4e57-8c0b-1d2e3f4a5b6c&q=o'brien(1)!")).toBe("?accountId=3e5e4c1a-9a4d-4e57-8c0b-1d2e3f4a5b6c&q=o%27brien%281%29%21");
+  });
   it("many concurrent requests with an expired token trigger exactly one refresh", async () => {
     const upstream = vi.fn(async () => { await new Promise((r) => setTimeout(r, 10)); return tokens(); });
     const coordinator = new RefreshCoordinator(upstream);

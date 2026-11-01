@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const credentials = await readCredentials(req);
   if (credentials instanceof NextResponse) return credentials;
   try {
-    return sessionResponse(req, await login(credentials.email, credentials.password, fetch, credentials.clientIp));
+    return sessionResponse(req, await login(credentials.email, credentials.password, fetch, credentials.clientIp), 200, credentials.email.trim());
   } catch (error) {
     return upstreamProblem(error);
   }

@@ -1,5 +1,5 @@
 import type {
-  Account, DeadLetter, HistoryEntry, NotificationItem, Payment, ReconciliationReport, SessionInfo,
+  Account, DeadLetter, HistoryEntry, NotificationItem, Payment, PaymentFilters, ReconciliationReport, SessionInfo, Stats, StatsDays,
 } from "./types";
 
 /** An error the UI can show: stable code from the backend plus a human message that is safe to display. */
@@ -72,6 +72,16 @@ async function request<T>(url: string, opts: RequestOptions = {}): Promise<T> {
   return data as T;
 }
 
+/** Builds `?a=1&b=2` from the defined filters. Values are URL-encoded; the BFF re-validates the allow-listed names. */
+export function queryString(filters: PaymentFilters): string {
+  const params = new URLSearchParams();
+  for (const [name, value] of Object.entries(filters)) {
+    if (value === undefined || value === "") continue;
+    params.set(name, String(value));
+  }
+  const text = params.toString();
+  return text ? `?${text}` : "";
+}
 const payments = (path: string) => `/api/backend/payments/${path}`;
 const notifications = (path: string) => `/api/backend/notifications/${path}`;
 
@@ -86,7 +96,8 @@ export const api = {
   accounts: (signal?: AbortSignal) => request<Account[]>(payments("accounts"), { signal }),
   openAccount: (currency: string) => request<Account>(payments("accounts"), { method: "POST", body: { currency } }),
   account: (id: string, signal?: AbortSignal) => request<Account>(payments(`accounts/${id}`), { signal }),
-  payments: (limit = 50, signal?: AbortSignal) => request<Payment[]>(payments(`payments?limit=${limit}`), { signal }),
+  payments: (filters: PaymentFilters = {}, signal?: AbortSignal) => request<Payment[]>(payments(`payments${queryString(filters)}`), { signal }),
+  stats: (days: StatsDays, signal?: AbortSignal) => request<Stats>(payments(`payments/stats?days=${days}`), { signal }),
   payment: (id: string, signal?: AbortSignal) => request<Payment>(payments(`payments/${id}`), { signal }),
   paymentHistory: (id: string, signal?: AbortSignal) => request<HistoryEntry[]>(payments(`payments/${id}/history`), { signal }),
   transfer: (idempotencyKey: string, body: { fromAccountId: string; toAccountId: string; amount: string; currency: string; reference?: string }) =>

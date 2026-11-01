@@ -57,3 +57,28 @@ export function toMinorUnits(amount: string, currency: string): bigint {
 export function exceeds(amount: string, balance: string, currency: string): boolean {
   return toMinorUnits(amount, currency) > toMinorUnits(balance, currency);
 }
+
+/** Exact inverse of {@link toMinorUnits}: integer minor units back to a plain decimal string ("12.50", "-0.05"). */
+export function fromMinorUnits(minor: bigint, currency: string): string {
+  const digits = fractionDigits(currency);
+  const negative = minor < 0n;
+  const abs = (negative ? -minor : minor).toString().padStart(digits + 1, "0");
+  const whole = digits === 0 ? abs : abs.slice(0, -digits);
+  const fraction = digits === 0 ? "" : abs.slice(-digits);
+  return `${negative ? "-" : ""}${whole}${fraction ? "." + fraction : ""}`;
+}
+
+/** Like {@link formatMoney} but with an explicit sign, for deltas and statement lines. */
+export function formatSigned(minor: bigint, currency: string): string {
+  const text = formatMoney(fromMinorUnits(minor < 0n ? -minor : minor, currency), currency);
+  return minor > 0n ? `+${text}` : minor < 0n ? `\u2212${text}` : text;
+}
+
+/** Compact axis label, e.g. 12.5K. Display only; never used for arithmetic. */
+export function formatCompact(value: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 }).format(value);
+  } catch {
+    return String(value);
+  }
+}

@@ -33,8 +33,45 @@ export type BackendResult =
   | { kind: "unavailable" };
 
 const FORWARDED_RESPONSE_HEADERS = ["content-type", "idempotent-replay", "retry-after", "x-correlation-id"];
-/** Filters (status, kind, direction, YYYY-MM-DD dates, paging) fit comfortably; anything with other characters is dropped, not forwarded. */
-const SAFE_QUERY = /^\?[A-Za-z0-9=&._-]{0,220}$/;
+/**
+ * Query parameters the console is allowed to send, each with the shape of value it may carry. The query string is
+ * parsed and rebuilt from this list, so nothing else (unknown names, odd characters, repeated keys) reaches a service.
+ * A parameter with a malformed value is dropped; the service still validates whatever is forwarded.
+ */
+const QUERY_RULES: Record<string, (value: string) => boolean> = {
+  limit: (v) => /^\d{1,4}$/.test(v),
+  offset: (v) => /^\d{1,6}$/.test(v),
+  days: (v) => /^\d{1,4}$/.test(v),
+  status: (v) => /^[A-Z_]{1,24}$/.test(v),
+  kind: (v) => /^[A-Z_]{1,24}$/.test(v),
+  direction: (v) => v === "in" || v === "out",
+  from: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),
+  to: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),
+  accountId: (v) => /^[0-9a-fA-F-]{36}$/.test(v),
+  // Free text typed by the user: bounded, no control characters. It is URL-encoded again below.
+  q: (v) => v.length >= 1 && v.length <= 50 && !/[\u0000-\u001f\u007f]/.test(v),
+};
+const MAX_RAW_QUERY = 400;
+
+export function sanitizeQuery(search: string): string {
+  if (!search || search.length > MAX_RAW_QUERY) return "";
+  let parsed: URLSearchParams;
+  try {
+    parsed = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  } catch {
+    return "";
+  }
+  const out = new URLSearchParams();
+  const seen = new Set<string>();
+  for (const [name, value] of parsed) {
+    const rule = Object.hasOwn(QUERY_RULES, name) ? QUERY_RULES[name] : undefined;
+    if (!rule || seen.has(name) || !rule(value)) continue;
+    seen.add(name);
+    out.append(name, value);
+  }
+  const text = out.toString();
+  return text ? `?${text}` : "";
+}
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9._:-]{8,64}$/;
 const CORRELATION_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
@@ -92,7 +129,7 @@ function refreshFailure(error: unknown): BackendResult {
 }
 
 async function send(req: BackendRequest, access: string | undefined, fetchImpl: Fetch): Promise<Response | "unavailable"> {
-  const search = SAFE_QUERY.test(req.search) ? req.search : "";
+  const search = sanitizeQuery(req.search);
   const headers: Record<string, string> = { Accept: "application/json", "X-Correlation-Id": correlation(req.correlationId) };
   if (access) headers.Authorization = `Bearer ${access}`;
   if (req.body !== null) headers["Content-Type"] = "application/json";

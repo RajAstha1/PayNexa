@@ -1,0 +1,117 @@
+/*
+ * PayNexa design tokens: the single source of truth for colour, type, space, radius, shadow and motion.
+ * Components never use raw colours; they use these variables.
+ *
+ * Principles
+ *  - White is the default surface. Lavender is an accent, used sparingly (hero, active states, chart fills).
+ *  - Midnight navy is reserved for the sidebar and a few anchor elements.
+ *  - Financial colour carries meaning only: green = money in / success, red = failure, amber = pending.
+ *    Ordinary money out is shown in the normal text colour with a minus sign (spending is not an error).
+ */
+:root {
+  /* ---- brand ---- */
+  --navy-900: #171a35; /* midnight navy */
+  --navy-800: #202344; /* deep navy */
+  --navy-700: #2c3058;
+  --navy-600: #3a3f6e;
+  --lav-50: #f8f7ff;   /* secondary surface */
+  --lav-100: #eeeafe;  /* soft lavender */
+  --lav-200: #e0dbfd;
+  --lav-300: #cfc8fc;
+  --lav-400: #b3a8ff;  /* violet highlight */
+  --lav-500: #9384f7;  /* lavender accent */
+  --lav-600: #7b6bea;
+  --lav-700: #6556d4;  /* accessible accent for text on white (>= 4.5:1) */
+
+  /* ---- surfaces ---- */
+  --bg: #f5f4fc;
+  --surface: #ffffff;
+  --surface-2: #f8f7ff;
+  --surface-hover: #f3f1fe;
+  --overlay: rgb(23 26 53 / 45%);
+
+  /* ---- text ---- */
+  --text: #171a35;
+  /* Spec value was #777b98 (4.1:1 on white). Nudged darker to #6c708e (4.8:1) so body-size secondary text passes WCAG AA. */
+  --text-2: #6c708e;
+  --text-3: #a2a4b8;
+  --text-on-navy: #eceaff;
+  --text-on-navy-2: #a9acd0;
+
+  /* ---- lines ---- */
+  --border: #e8e6f5;
+  --border-strong: #d9d6ee;
+  --navy-border: rgb(255 255 255 / 8%);
+
+  /* ---- financial meaning ---- */
+  --positive: #27865a;
+  --positive-bg: #e6f4ed;
+  --negative: #d65f68;
+  --negative-bg: #fcebec;
+  --negative-text: #b4414b; /* text-safe red (5.6:1); #d65f68 stays for fills, dots and borders */
+  --pending: #8f6414;       /* text-safe amber (5.2:1) */
+  --pending-fill: #d5a34b;
+  --pending-bg: #fbf1dc;
+  --info: #5a63c9;
+  --info-bg: #eceefc;
+
+  /* ---- type ---- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2rem;
+  --text-hero: clamp(2rem, 1.4rem + 2vw, 2.75rem);
+
+  /* ---- space (4px grid) ---- */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.25rem;
+  --s-6: 1.5rem;
+  --s-8: 2rem;
+  --s-10: 2.5rem;
+  --s-12: 3rem;
+
+  /* ---- shape ---- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ---- elevation: deliberately faint ---- */
+  --shadow-xs: 0 1px 2px rgb(23 26 53 / 4%);
+  --shadow-sm: 0 1px 2px rgb(23 26 53 / 4%), 0 2px 8px rgb(23 26 53 / 4%);
+  --shadow-md: 0 2px 4px rgb(23 26 53 / 4%), 0 10px 24px rgb(23 26 53 / 7%);
+  --shadow-pop: 0 4px 8px rgb(23 26 53 / 5%), 0 18px 40px rgb(23 26 53 / 14%);
+  --ring: 0 0 0 3px rgb(147 132 247 / 38%);
+
+  /* ---- layout ---- */
+  --sidebar-w: 248px;
+  --rail-w: 76px;
+  --header-h: 72px;
+  --content-max: 1240px;
+  --bottom-nav-h: 64px;
+
+  /* ---- motion: calm and short ---- */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 150ms;
+  --t-base: 200ms;
+  --t-slow: 250ms;
+
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0.01ms;
+    --t-base: 0.01ms;
+    --t-slow: 0.01ms;
+  }
+}

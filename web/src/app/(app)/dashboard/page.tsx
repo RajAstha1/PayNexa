@@ -1,79 +1,85 @@
 "use client";
-
 import Link from "next/link";
-import { Alert, Card, EmptyState, ErrorNotice, Loading, Money, StatusBadge, when } from "@/components/ui";
+import { useMemo, useState } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { AccountSummaryCard } from "@/components/finance/account-card";
+import { BalanceCard, useBalanceHidden } from "@/components/finance/balance-card";
+import { QuickActions } from "@/components/finance/quick-actions";
+import { TransactionList } from "@/components/finance/transactions";
+import { VolumeChartCard } from "@/components/finance/volume-chart-card";
+import { Card, EmptyState, ErrorNotice, LinkButton, Skeleton, TransactionSkeleton } from "@/components/ui";
 import { api } from "@/lib/client/api";
-import { kindLabel } from "@/lib/client/labels";
+import { firstName, greeting } from "@/lib/client/format";
+import type { StatsDays } from "@/lib/client/types";
 import { useAsync } from "@/lib/client/use-async";
 
 export default function DashboardPage() {
+  const auth = useAuth();
   const accounts = useAsync((s) => api.accounts(s), []);
-  const payments = useAsync((s) => api.payments(8, s), []);
-  const review = payments.data?.filter((p) => p.status === "PENDING_REVIEW") ?? [];
+  const recent = useAsync((s) => api.payments({ limit: 6 }, s), []);
+  const week = useAsync((s) => api.stats(7, s), []);
+  const [days, setDays] = useState<StatsDays>(30);
+  const chart = useAsync((s) => api.stats(days, s), [days], { keepPrevious: true });
+  const [selected, setSelected] = useState<string>("");
+  const [hidden] = useBalanceHidden();
+  const list = useMemo(() => accounts.data ?? [], [accounts.data]);
+  const mine = useMemo(() => new Set(list.map((a) => a.id)), [list]);
+  const current = list.find((a) => a.currency === selected) ?? list[0];
 
   return (
-    <div className="stack">
-      <div className="page-head">
-        <h1>Dashboard</h1>
-        <p className="muted">Your accounts and latest activity.</p>
+    <div className="stack page-dashboard">
+      <header className="greeting">
+        <h1>{greeting()}, {firstName(auth.email)}</h1>
+        <p className="muted">Here&apos;s your payment activity at a glance.</p>
+      </header>
+
+      {accounts.error && !accounts.data && <ErrorNotice error={accounts.error} onRetry={accounts.reload} />}
+
+      <div className="dash-hero">
+        {accounts.loading && !accounts.data ? (
+          <div className="balance-card balance-skeleton" role="status" aria-label="Loading balance">
+            <Skeleton width={160} height={14} className="on-lav" />
+            <Skeleton width={260} height={44} radius={12} className="on-lav" />
+            <Skeleton width={200} height={14} className="on-lav" />
+          </div>
+        ) : accounts.data ? (
+          <BalanceCard accounts={list} selected={current?.currency ?? ""} onSelect={setSelected} stats={week.data} statsLoading={week.loading} isAdmin={auth.isAdmin} />
+        ) : null}
+        <Card title="Quick actions" className="quick-card">
+          <QuickActions isAdmin={auth.isAdmin} hasAccounts={list.length > 0} />
+        </Card>
       </div>
 
-      {review.length > 0 && (
-        <Alert tone="warn">
-          {review.length === 1 ? "1 payment is" : `${review.length} payments are`} under review. No money moves until an administrator approves {review.length === 1 ? "it" : "them"}.{" "}
-          <Link href={`/payments/${review[0]!.id}`}>View</Link>
-        </Alert>
-      )}
+      <section aria-labelledby="accounts-heading" className="stack-sm">
+        <div className="section-head">
+          <h2 id="accounts-heading">Your accounts</h2>
+          <Link href="/accounts" className="small">Manage accounts</Link>
+        </div>
+        {accounts.loading && !accounts.data ? (
+          <div className="acct-grid">{[0, 1, 2].map((i) => <Skeleton key={i} height={132} radius={20} />)}</div>
+        ) : list.length === 0 && accounts.data ? (
+          <Card><EmptyState icon="accounts" title="No accounts yet" action={<LinkButton href="/accounts">Open an account</LinkButton>}>
+            An account holds one currency. Open one to send and receive synthetic funds.
+          </EmptyState></Card>
+        ) : (
+          <div className="acct-grid">{list.map((a) => <AccountSummaryCard key={a.id} account={a} masked={hidden} />)}</div>
+        )}
+      </section>
 
-      <Card title="Accounts" actions={<Link className="btn btn-secondary btn-sm" href="/accounts">Manage</Link>}>
-        {accounts.loading && <Loading label="Loading accounts" />}
-        {accounts.error && <ErrorNotice error={accounts.error} />}
-        {accounts.data && accounts.data.length === 0 && (
-          <EmptyState title="No accounts yet" action={<Link className="btn btn-primary" href="/accounts">Open your first account</Link>}>
-            Open an account in a currency to start sending and receiving money.
-          </EmptyState>
-        )}
-        {accounts.data && accounts.data.length > 0 && (
-          <div className="grid grid-3">
-            {accounts.data.map((a) => (
-              <Link key={a.id} href={`/accounts/${a.id}`} className="card" style={{ textDecoration: "none", color: "inherit" }}>
-                <div className="stat-label">{a.currency} account {a.status === "FROZEN" && <span className="badge badge-bad">Frozen</span>}</div>
-                <div className="balance"><Money amount={a.balance} currency={a.currency} /></div>
-                <div className="muted small">Available balance</div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <Card title="Recent payments" actions={<Link className="btn btn-secondary btn-sm" href="/payments">See all</Link>}>
-        {payments.loading && <Loading label="Loading payments" />}
-        {payments.error && <ErrorNotice error={payments.error} />}
-        {payments.data && payments.data.length === 0 && (
-          <EmptyState title="No payments yet" action={<Link className="btn btn-primary" href="/send">Send money</Link>}>
-            Payments you send or receive will appear here.
-          </EmptyState>
-        )}
-        {payments.data && payments.data.length > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>When</th><th>Type</th><th>Status</th><th className="right">Amount</th></tr>
-              </thead>
-              <tbody>
-                {payments.data.map((p) => (
-                  <tr key={p.id}>
-                    <td><Link href={`/payments/${p.id}`}>{when(p.createdAt)}</Link></td>
-                    <td>{kindLabel(p.kind)}</td>
-                    <td><StatusBadge status={p.status} /></td>
-                    <td className="right"><Money amount={p.amount} currency={p.currency} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      <div className="dash-lower">
+        <VolumeChartCard stats={chart.data} loading={chart.loading} error={chart.error} days={days} onDays={setDays} preferred={current?.currency} onRetry={chart.reload} />
+        <Card title="Recent transactions" actions={<Link href="/payments" className="small">View all</Link>} className="recent-card">
+          {recent.loading && !recent.data ? (
+            <TransactionSkeleton rows={5} />
+          ) : recent.error && !recent.data ? (
+            <ErrorNotice error={recent.error} onRetry={recent.reload} />
+          ) : recent.data && recent.data.length === 0 ? (
+            <EmptyState icon="payments" title="No transactions yet">Payments you send or receive will appear here.</EmptyState>
+          ) : (
+            <TransactionList payments={recent.data ?? []} mine={mine} />
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

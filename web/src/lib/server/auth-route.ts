@@ -5,7 +5,7 @@ import { UpstreamError } from "./identity";
 import { decodeClaims } from "./jwt";
 import { isSameOriginRequest } from "./origin";
 import { problem } from "./problem";
-import { setSessionCookies, type Tokens } from "./session-cookies";
+import { setEmailCookie, setSessionCookies, type Tokens } from "./session-cookies";
 
 export async function readCredentials(req: NextRequest): Promise<{ email: string; password: string; clientIp?: string } | NextResponse> {
   if (!isSameOriginRequest(req)) return problem(403, "BAD_ORIGIN", "Cross-site request rejected");
@@ -25,13 +25,14 @@ export async function readCredentials(req: NextRequest): Promise<{ email: string
 }
 
 /** Builds the response for a successful sign-in: the page gets identity facts, the tokens go to HttpOnly cookies. */
-export function sessionResponse(req: NextRequest, tokens: Tokens, status = 200): NextResponse {
+export function sessionResponse(req: NextRequest, tokens: Tokens, status = 200, email?: string): NextResponse {
   const claims = decodeClaims(tokens.accessToken);
   const res = NextResponse.json(
-    { authenticated: true, userId: claims?.userId ?? null, roles: claims?.roles ?? [] },
+    { authenticated: true, userId: claims?.userId ?? null, roles: claims?.roles ?? [], email: email ?? null },
     { status, headers: { "Cache-Control": "no-store" } },
   );
   setSessionCookies(res, req, tokens);
+  if (email) setEmailCookie(res, req, email);
   return res;
 }
 

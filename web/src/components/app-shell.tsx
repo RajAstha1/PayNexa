@@ -1,48 +1,47 @@
 "use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { api } from "@/lib/client/api";
-import { useAsync } from "@/lib/client/use-async";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./auth-provider";
+import { NotificationsProvider } from "./shell/notifications-context";
+import { SearchCommand } from "./shell/search-command";
+import { BottomNav, MobileDrawer, Sidebar, SupportDialog } from "./shell/sidebar";
+import { TopHeader } from "./shell/top-header";
 import { Button, Loading } from "./ui";
-
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/accounts", label: "Accounts" },
-  { href: "/send", label: "Send money" },
-  { href: "/payments", label: "Payments" },
-  { href: "/notifications", label: "Notifications" },
-];
 
 export function SandboxBanner() {
   return (
     <div className="sandbox-banner" role="note">
-      <strong>Sandbox.</strong> Synthetic money only. No real funds, banks or payment rails are connected.
+      <span className="sandbox-dot" aria-hidden="true" /> <strong>Sandbox.</strong> Synthetic money only. No real funds, banks or payment rails are connected.
     </div>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const authenticated = auth.status === "authenticated";
 
-  // Unread count in the nav; failures here must never break the page.
-  const notifications = useAsync((s) => api.notifications(s), [auth.status], { enabled: auth.status === "authenticated", pollMs: 15000, pollWhile: () => true });
-  const unread = notifications.data?.filter((n) => !n.read).length ?? 0;
+  // Cmd/Ctrl+K opens search from anywhere in the console.
+  useEffect(() => {
+    if (!authenticated) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [authenticated]);
 
   if (auth.status === "loading") {
-    return (
-      <div className="center-screen">
-        <Loading label="Checking your session" />
-      </div>
-    );
+    return <div className="center-screen"><Loading label="Checking your session" /></div>;
   }
   if (auth.status === "unavailable") {
     return (
       <div className="center-screen">
-        <div className="card narrow">
+        <div className="card narrow stack-sm">
           <h1>Service unavailable</h1>
           <p className="muted">We can&apos;t reach the sign-in service right now. Please try again in a moment.</p>
           <Button onClick={() => window.location.reload()}>Try again</Button>
@@ -50,45 +49,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (auth.status !== "authenticated") {
-    return (
-      <div className="center-screen">
-        <Loading label="Redirecting to sign in" />
-      </div>
-    );
+  if (!authenticated) {
+    return <div className="center-screen"><Loading label="Redirecting to sign in" /></div>;
   }
-
-  const items = auth.isAdmin ? [...NAV, { href: "/admin", label: "Admin" }] : NAV;
   return (
-    <div className="shell">
-      <SandboxBanner />
-      <header className="topbar">
-        <Link href="/dashboard" className="brand" aria-label="PayNexa home">
-          <span className="brand-mark" aria-hidden="true">P</span> PayNexa
-        </Link>
-        <nav aria-label="Main">
-          <ul className="nav">
-            {items.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <li key={item.href}>
-                  <Link href={item.href} aria-current={active ? "page" : undefined} className={active ? "nav-link active" : "nav-link"}>
-                    {item.label}
-                    {item.href === "/notifications" && unread > 0 && (
-                      <span className="pill" aria-label={`${unread} unread`}>{unread}</span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-        <div className="topbar-end">
-          {auth.isAdmin && <span className="badge badge-info">Admin</span>}
-          <Button variant="ghost" onClick={() => void auth.signOut()}>Sign out</Button>
+    <NotificationsProvider>
+      <div className="app">
+        <Sidebar onSupport={() => setSupportOpen(true)} />
+        <div className="app-main">
+          <TopHeader onSearch={() => setSearchOpen(true)} onSupport={() => setSupportOpen(true)} />
+          <main id="main" className="page" tabIndex={-1}>{children}</main>
         </div>
-      </header>
-      <main id="main" className="page">{children}</main>
-    </div>
+        <BottomNav onMenu={() => setMenuOpen(true)} />
+      </div>
+      <SearchCommand open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />
+      <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onSupport={() => setSupportOpen(true)} />
+    </NotificationsProvider>
   );
 }

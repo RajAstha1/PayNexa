@@ -1,29 +1,38 @@
 "use client";
-
-import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import { Alert, Button, Card, EmptyState, ErrorNotice, Field, Loading, Money, ShortId } from "@/components/ui";
+import { useMemo, useState, type FormEvent } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { AccountSummaryCard } from "@/components/finance/account-card";
+import { useBalanceHidden } from "@/components/finance/balance-card";
+import { Alert, Button, Card, EmptyState, ErrorNotice, Field, PageHeader, Skeleton } from "@/components/ui";
 import { ApiError, api } from "@/lib/client/api";
+import { errorText } from "@/lib/client/labels";
+import { currencyName } from "@/lib/client/format";
 import { CURRENCIES } from "@/lib/client/types";
 import { useAsync } from "@/lib/client/use-async";
 
 export default function AccountsPage() {
+  useAuth();
   const accounts = useAsync((s) => api.accounts(s), []);
+  const [hidden] = useBalanceHidden();
   const [currency, setCurrency] = useState<string>("USD");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [opened, setOpened] = useState<string | null>(null);
 
-  const have = new Set(accounts.data?.map((a) => a.currency));
-  const available = CURRENCIES.filter((c) => !have.has(c));
+  const available = useMemo(() => {
+    const have = new Set(accounts.data?.map((a) => a.currency));
+    return CURRENCIES.filter((c) => !have.has(c));
+  }, [accounts.data]);
+  const chosen = (available as readonly string[]).includes(currency) ? currency : available[0];
 
   async function open(e: FormEvent) {
     e.preventDefault();
+    if (!chosen) return;
     setBusy(true);
     setError(null);
     setOpened(null);
     try {
-      const account = await api.openAccount(currency);
+      const account = await api.openAccount(chosen);
       setOpened(account.currency);
       accounts.reload();
     } catch (err) {
@@ -35,47 +44,30 @@ export default function AccountsPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <h1>Accounts</h1>
-        <p className="muted">You can hold one account per currency. Share an account ID to receive money.</p>
-      </div>
+      <PageHeader title="Accounts" subtitle="One account per currency. Share an account ID to receive money." />
 
-      <Card title="Your accounts">
-        {accounts.loading && <Loading label="Loading accounts" />}
-        {accounts.error && <ErrorNotice error={accounts.error} />}
-        {accounts.data?.length === 0 && <EmptyState title="No accounts yet">Open one below to get started.</EmptyState>}
-        {accounts.data && accounts.data.length > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Currency</th><th>Account ID</th><th>Status</th><th className="right">Balance</th></tr></thead>
-              <tbody>
-                {accounts.data.map((a) => (
-                  <tr key={a.id}>
-                    <td><Link href={`/accounts/${a.id}`}>{a.currency}</Link></td>
-                    <td><ShortId value={a.id} /></td>
-                    <td>{a.status === "ACTIVE" ? <span className="badge badge-good">Active</span> : <span className="badge badge-bad">Frozen</span>}</td>
-                    <td className="right"><Money amount={a.balance} currency={a.currency} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      {accounts.error && !accounts.data && <ErrorNotice error={accounts.error} onRetry={accounts.reload} />}
+      {accounts.loading && !accounts.data ? (
+        <div className="acct-grid">{[0, 1, 2].map((i) => <Skeleton key={i} height={140} radius={22} />)}</div>
+      ) : accounts.data && accounts.data.length === 0 ? (
+        <Card><EmptyState icon="accounts" title="No accounts yet">Open your first account below to get started.</EmptyState></Card>
+      ) : (
+        <div className="acct-grid">{accounts.data?.map((a) => <AccountSummaryCard key={a.id} account={a} masked={hidden} />)}</div>
+      )}
 
-      <Card title="Open an account">
+      <Card title="Open an account" id="open">
         {available.length === 0 ? (
           <p className="muted">You already hold an account in every supported currency.</p>
         ) : (
-          <form className="form" onSubmit={open} style={{ maxWidth: 360 }}>
-            {error && <Alert tone="bad">{error.message}</Alert>}
+          <form className="form open-form" onSubmit={open}>
+            {error && <Alert tone="bad">{errorText(error.code, error.message)}</Alert>}
             {opened && <Alert tone="good">Your {opened} account is ready.</Alert>}
-            <Field label="Currency" htmlFor="currency">
-              <select id="currency" value={available.includes(currency as never) ? currency : available[0]} onChange={(e) => setCurrency(e.target.value)}>
-                {available.map((c) => <option key={c} value={c}>{c}</option>)}
+            <Field label="Currency" htmlFor="currency" hint={chosen ? `${currencyName(chosen)}. Accounts start empty.` : undefined}>
+              <select id="currency" value={chosen} onChange={(e) => setCurrency(e.target.value)}>
+                {available.map((c) => <option key={c} value={c}>{c} · {currencyName(c)}</option>)}
               </select>
             </Field>
-            <Button type="submit" busy={busy}>Open account</Button>
+            <div><Button type="submit" busy={busy}>Open account</Button></div>
           </form>
         )}
       </Card>

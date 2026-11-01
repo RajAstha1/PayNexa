@@ -21,6 +21,8 @@ export const COOKIES = {
   access: "pn_at",
   /** Refresh token. Only ever sent to /api/*, never to page requests. */
   refresh: "pn_rt",
+  /** The sign-in email, kept only so the console can greet the user. Display data, never used for authorization. */
+  email: "pn_email",
 } as const;
 
 /** Refresh tokens live 7 days in identity-service; the cookie is just a carrier, the server decides real expiry. */
