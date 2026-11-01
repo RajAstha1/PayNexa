@@ -103,17 +103,31 @@ class PaymentController {
                                @RequestParam(required = false) String kind,
                                @RequestParam(required = false) String direction,
                                @RequestParam(required = false) String from,
-                               @RequestParam(required = false) String to) {
+                               @RequestParam(required = false) String to,
+                               @RequestParam(required = false) UUID accountId,
+                               @RequestParam(required = false) String q) {
         var actor = Actors.from(jwt);
         var mine = accountRepo.findByOwner(actor.userId()).stream().map(a -> a.id()).toList();
+        if (accountId != null) {
+            // Narrowing to one account is only allowed for an account the caller owns.
+            if (!mine.contains(accountId)) {
+                throw DomainException.notFound("ACCOUNT_NOT_FOUND", "Account not found");
+            }
+            mine = List.of(accountId);
+        }
         if (mine.isEmpty()) {
             return List.of();
+        }
+        var text = q == null || q.isBlank() ? null : q.trim();
+        if (text != null && text.length() > 50) {
+            throw new DomainException("INVALID_FILTER", "Search text must be at most 50 characters");
         }
         var filter = new PaymentRepository.Filter(
                 parseEnum(PaymentStatus.class, status, "status"), parseEnum(PaymentKind.class, kind, "kind"),
                 parseEnum(PaymentRepository.Direction.class, direction, "direction"),
                 parseDate(from, "from") == null ? null : parseDate(from, "from").atStartOfDay(ZoneOffset.UTC).toInstant(),
-                parseDate(to, "to") == null ? null : parseDate(to, "to").plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+                parseDate(to, "to") == null ? null : parseDate(to, "to").plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant(),
+                text);
         if (filter.from() != null && filter.toExclusive() != null && !filter.from().isBefore(filter.toExclusive())) {
             throw new DomainException("INVALID_FILTER", "'from' must not be after 'to'");
         }

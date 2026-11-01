@@ -166,6 +166,60 @@ class PaymentQueryApiTest {
         }
     }
 
+    @Test
+    void searchesByReferenceAndPaymentIdPrefixAndTreatsWildcardsAsPlainText() throws Exception {
+        var alice = UUID.randomUUID();
+        var bob = UUID.randomUUID();
+        var a = account(alice, "USD");
+        var b = account(bob, "USD");
+        fund(a, "100.00", "USD");
+        var lunch = payWithReference(alice, a, b, "1.00", "Team Lunch");
+        payWithReference(alice, a, b, "2.00", "rent 100%_final");
+        payWithReference(alice, a, b, "3.00", "taxi");
+
+        assertThat(search(alice, "lunch", 200)).hasSize(1);                 // case-insensitive substring
+        assertThat(search(alice, lunch.get("id").asString().substring(0, 8), 200)).hasSize(1);   // id prefix
+        assertThat(search(alice, "100%_final", 200)).hasSize(1);          // % and _ are literals, not wildcards
+        assertThat(search(alice, "%", 200)).hasSize(1);                   // "%" alone matches only the literal one
+        assertThat(search(alice, "_", 200)).hasSize(1);
+        assertThat(search(alice, "nothing-like-this", 200)).isEmpty();
+        assertThat(search(bob, "lunch", 200)).hasSize(1);                   // the payee can find it too
+        assertThat(search(UUID.randomUUID(), "lunch", 200)).isEmpty();      // strangers cannot
+        assertThat(search(alice, "x".repeat(51), 400).get("code").asString()).isEqualTo("INVALID_FILTER");
+    }
+
+    @Test
+    void narrowsToOneAccountOnlyIfTheCallerOwnsIt() throws Exception {
+        var alice = UUID.randomUUID();
+        var bob = UUID.randomUUID();
+        var aUsd = account(alice, "USD");
+        var aEur = account(alice, "EUR");
+        var b = account(bob, "USD");
+        fund(aUsd, "10.00", "USD");
+        fund(aEur, "20.00", "EUR");
+        pay(alice, aUsd, b, "1.00", "USD");
+
+        assertThat(call(get("/payments?accountId=" + aUsd), alice, 200)).hasSize(2);       // funding + transfer
+        assertThat(call(get("/payments?accountId=" + aEur), alice, 200)).hasSize(1);       // only the EUR funding
+        assertThat(call(get("/payments?accountId=" + b), alice, 404).get("code").asString()).isEqualTo("ACCOUNT_NOT_FOUND");   // not hers
+        assertThat(call(get("/payments?accountId=" + UUID.randomUUID()), alice, 404).get("code").asString()).isEqualTo("ACCOUNT_NOT_FOUND");
+    }
+
+    /** Search text goes in as a real request parameter, exactly as a browser sends it (MockMvc would re-encode a URL string). */
+    private JsonNode search(UUID user, String text, int expected) throws Exception {
+        var res = mvc.perform(get("/payments").param("q", text).header("Authorization", "Bearer " + TOKENS.user(user)))
+                .andExpect(status().is(expected)).andReturn();
+        return JSON.readTree(res.getResponse().getContentAsString());
+    }
+
+    private JsonNode payWithReference(UUID user, UUID from, UUID to, String amount, String reference) throws Exception {
+        var res = mvc.perform(post("/payments/transfers").header("Authorization", "Bearer " + TOKENS.user(user))
+                .header("Idempotency-Key", "r-" + UUID.randomUUID()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fromAccountId\":\"%s\",\"toAccountId\":\"%s\",\"amount\":\"%s\",\"currency\":\"USD\",\"reference\":\"%s\"}".formatted(from, to, amount, reference)))
+                .andExpect(status().isCreated()).andReturn();
+        return JSON.readTree(res.getResponse().getContentAsString());
+    }
+
     // ------------------------------------------------------------------------------------------------- stats
 
     @Test

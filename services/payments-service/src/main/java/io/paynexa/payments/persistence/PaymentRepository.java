@@ -122,9 +122,9 @@ public class PaymentRepository {
     public enum Direction { IN, OUT }
 
     /** Optional filters for a user's payment list. Every field is bound as a parameter; nothing is concatenated into SQL. */
-    public record Filter(PaymentStatus status, PaymentKind kind, Direction direction, Instant from, Instant toExclusive) {
+    public record Filter(PaymentStatus status, PaymentKind kind, Direction direction, Instant from, Instant toExclusive, String text) {
         public static Filter none() {
-            return new Filter(null, null, null, null, null);
+            return new Filter(null, null, null, null, null, null);
         }
     }
 
@@ -142,6 +142,8 @@ public class PaymentRepository {
         if (f.direction() == Direction.IN) where.append(" AND payee_account_id IN (:ids)");
         if (f.status() != null) where.append(" AND status = :status");
         if (f.kind() != null) where.append(" AND kind = :kind");
+        // Free text: payment id prefix or a case-insensitive substring of the reference. LIKE metacharacters are escaped.
+        if (f.text() != null) where.append(" AND (id::text LIKE :idPrefix ESCAPE '\\' OR reference ILIKE :ref ESCAPE '\\')");
         if (f.from() != null) where.append(" AND created_at >= :from");
         if (f.toExclusive() != null) where.append(" AND created_at < :to");
         var spec = jdbc.sql("SELECT " + COLUMNS + " FROM payments WHERE " + where
@@ -149,6 +151,10 @@ public class PaymentRepository {
                 .param("ids", accountIds).param("limit", limit).param("offset", offset);
         if (f.status() != null) spec = spec.param("status", f.status().name());
         if (f.kind() != null) spec = spec.param("kind", f.kind().name());
+        if (f.text() != null) {
+            var escaped = f.text().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+            spec = spec.param("idPrefix", escaped.toLowerCase(java.util.Locale.ROOT) + "%").param("ref", "%" + escaped + "%");
+        }
         if (f.from() != null) spec = spec.param("from", Times.toDb(f.from()));
         if (f.toExclusive() != null) spec = spec.param("to", Times.toDb(f.toExclusive()));
         return spec.query(MAPPER).list();
