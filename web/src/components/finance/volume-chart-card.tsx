@@ -64,13 +64,13 @@ export function VolumeChartCard({ stats, loading, error, days, onDays, preferred
             height={260}
             summary={`Transaction volume in ${currency} over the last ${days} days. Total in ${formatMoney(fromMinorUnits(summary.incoming, currency), currency)}, total out ${formatMoney(fromMinorUnits(summary.outgoing, currency), currency)}.`}
             formatTick={(n) => formatCompact(n, currency)}
-            series={[{ key: "volume", label: "Volume", color: "var(--lav-500)", values: points.map((p) => toPlotNumber(p.incoming + p.outgoing, currency)) }]}
+            series={[{ key: "volume", label: "Volume", color: "var(--accent-500)", values: points.map((p) => toPlotNumber(p.incoming + p.outgoing, currency)) }]}
             categories={points.map((p) => ({
               label: p.label,
               title: stats.days > 30 ? `From ${p.label}` : p.label,
               rows: [
                 { label: "Money in", value: formatMoney(fromMinorUnits(p.incoming, currency), currency), color: "var(--positive)" },
-                { label: "Money out", value: formatMoney(fromMinorUnits(p.outgoing, currency), currency), color: "var(--lav-500)" },
+                { label: "Money out", value: formatMoney(fromMinorUnits(p.outgoing, currency), currency), color: "var(--accent-500)" },
                 { label: "Payments", value: String(p.count) },
               ],
             }))}

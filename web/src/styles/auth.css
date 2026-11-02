@@ -1,0 +1,115 @@
+/*
+ * Sign-in and register.
+ *
+ * Composition, not decoration: a slim header and a 12-column stage on an ivory canvas. The form sits on the left
+ * edge of the grid (aligned with the logo); a ledger sheet occupies the right half, dropped lower so the two tops
+ * never line up. Hairlines and mono numerals do the work that gradients and illustrations usually do.
+ *
+ *   >= 1000px  asymmetric two-column stage
+ *   640-999px  form on top, then an editorial band: caption beside the sheet
+ *   < 640px    form only (the sheet is an extra, not a requirement), full-width touch targets
+ */
+.auth { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; background: var(--bg); }
+.auth-container { width: 100%; max-width: 1200px; margin: 0 auto; padding-inline: clamp(20px, 4.5vw, 56px); }
+
+/* ---- header ---- */
+.auth-header { border-bottom: 1px solid var(--border); }
+.auth-header-row { height: 56px; display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); }
+.auth-home { display: inline-flex; border-radius: var(--r-sm); }
+.auth-home:hover { text-decoration: none; }
+.auth-prompt { display: flex; align-items: baseline; gap: var(--s-2); font-size: var(--text-sm); color: var(--text-2); }
+.auth-prompt a { font-weight: 550; color: var(--accent-700); }
+.auth-prompt a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- stage ---- */
+.auth-main { display: flex; align-items: center; }
+.auth-main:focus { outline: none; }
+/* centred in the space between header and footer, nudged upward (the bottom padding is larger) */
+.auth-stage { width: 100%; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; align-items: start; padding-block: 40px clamp(72px, 14vh, 140px); }
+.auth-enter { animation: auth-in 200ms var(--ease) both; }
+@keyframes auth-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.auth-panel { grid-column: 1 / span 5; max-width: 392px; }
+.auth-panel h1 { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.028em; line-height: 1.12; }
+.auth-lede { margin-top: var(--s-2); color: var(--text-2); font-size: var(--text-base); max-width: 36ch; }
+.auth-form { display: grid; gap: var(--s-5); margin-top: var(--s-8); }
+.auth-actions { display: flex; align-items: center; gap: var(--s-4); margin-top: var(--s-1); }
+.btn-auth { min-width: 132px; padding-inline: var(--s-6); }
+.auth-switch { margin-top: var(--s-8); padding-top: var(--s-5); border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--text-2); }
+.auth-switch a { font-weight: 550; }
+
+/* the field set is shared with the rest of the app (components.css); these are the sign-in refinements */
+.auth-form .field { gap: 6px; }
+.auth-form .field label { font-size: var(--text-sm); }
+.input-wrap { position: relative; }
+.input-wrap > input { padding-right: 4.25rem; }
+.reveal { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-xs); background: transparent; color: var(--text-2); font-size: var(--text-xs); font-weight: 550; cursor: pointer; transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease); }
+.reveal:hover { color: var(--text); background: var(--accent-50); }
+.reveal:active { background: var(--accent-100); }
+.reveal svg { transition: opacity var(--t-fast) var(--ease); }
+.field-foot { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); min-height: 0; }
+.field-foot:empty { display: none; }
+.field-count { margin-left: auto; font-size: var(--text-xs); color: var(--text-3); font-family: var(--font-mono); transition: color var(--t-base) var(--ease); }
+.field-count.met { color: var(--positive); }
+
+/* ---- aside: the ledger sheet ---- */
+.auth-aside { grid-column: 7 / -1; margin-top: 64px; }
+.ledger { margin: 0; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-xs); overflow: hidden; }
+.ledger-head { display: flex; align-items: center; gap: var(--s-3); height: 40px; padding: 0 var(--s-4); border-bottom: 1px solid var(--border-strong); background: var(--accent-50); font-size: var(--text-xs); color: var(--text-2); }
+.ledger-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-700); padding: 1px 6px; border: 1px solid var(--accent-300); border-radius: var(--r-xs); background: var(--surface); }
+.ledger-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.ledger-table th, .ledger-table td { height: 36px; padding: 0 var(--s-4); border-bottom: 1px solid var(--border); text-align: left; font-weight: 400; vertical-align: middle; }
+.ledger-table thead th { height: 32px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); font-weight: 500; }
+.ledger-table tbody th { color: var(--text); font-weight: 450; }
+.ledger-table tbody td { color: var(--text-2); }
+.ledger-table .num-col { text-align: right; width: 112px; border-left: 1px solid var(--border); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.ledger-table tbody tr:last-child th, .ledger-table tbody tr:last-child td { border-bottom: 0; }
+.ledger-table tfoot th, .ledger-table tfoot td { border-top: 3px double var(--border-strong); border-bottom: 0; font-weight: 600; background: var(--accent-50); }
+.ledger-table tfoot th { color: var(--text); }
+.ledger-flow { display: flex; align-items: center; padding: var(--s-4); border-top: 1px solid var(--border-strong); font-size: var(--text-xs); color: var(--text-2); }
+.ledger-flow li { display: flex; align-items: center; gap: var(--s-2); white-space: nowrap; }
+.ledger-flow li + li { flex: 1; }
+.ledger-flow li + li::before { content: ""; flex: 1; height: 1px; min-width: 16px; background: var(--border-strong); margin-right: var(--s-2); }
+.ledger-node { width: 8px; height: 8px; border: 1.5px solid var(--accent-500); background: var(--surface); }
+.ledger-flow .last { color: var(--text); font-weight: 550; }
+.ledger-flow .last .ledger-node { background: var(--accent-700); border-color: var(--accent-700); }
+.ledger-caption { margin-top: var(--s-4); max-width: 46ch; font-size: var(--text-sm); line-height: 1.6; color: var(--text-2); }
+
+/* ---- footer ---- */
+.auth-footer { border-top: 1px solid var(--border); }
+.auth-secure { display: flex; align-items: center; gap: var(--s-2); padding-block: 14px; font-size: var(--text-xs); color: var(--text-2); }
+.auth-secure-dot { width: 6px; height: 6px; background: var(--accent-600); }
+
+/* ---- tablet: the sheet becomes an editorial band under the form ---- */
+@media (max-width: 999px) {
+  .auth-main { align-items: flex-start; }
+  .auth-stage { grid-template-columns: 1fr; padding-block: clamp(32px, 7vh, 64px) 48px; }
+  .auth-panel { grid-column: 1; max-width: 420px; }
+  .auth-aside { grid-column: 1; margin-top: var(--s-12); padding-top: var(--s-8); border-top: 1px solid var(--border); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: var(--s-8); align-items: start; }
+  .ledger { grid-column: 2; grid-row: 1; }
+  .ledger-caption { grid-column: 1; grid-row: 1; margin-top: 0; }
+}
+
+/* ---- phones ---- */
+@media (max-width: 639px) {
+  .auth-header-row { height: 52px; }
+  .auth-prompt-text { display: none; }
+  .auth-stage { padding-block: 28px 32px; }
+  .auth-panel { max-width: none; }
+  .auth-panel h1 { font-size: var(--text-xl); }
+  .auth-form { margin-top: var(--s-6); }
+  .auth-actions .btn-auth { width: 100%; min-height: 48px; }
+  .auth-switch { margin-top: var(--s-6); }
+  .auth-aside { display: none; }
+  .auth-secure { padding-block: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-enter { animation: none; }
+}
+
+/* ---- full-page states (session check, redirect, outage) ---- */
+.status-screen { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-8); padding: var(--s-6); background: var(--bg); }
+.status-line { display: flex; align-items: center; gap: var(--s-3); color: var(--text-2); font-size: var(--text-sm); }
+.status-copy { display: grid; gap: var(--s-3); max-width: 380px; text-align: left; }
+.status-copy h1 { font-size: var(--text-xl); }

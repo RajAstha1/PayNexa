@@ -1,30 +1,23 @@
-import { useId } from "react";
-
 /**
- * The PayNexa mark: a rounded tile holding an "N" drawn as one continuous path that starts and ends in a node,
- * a nod to value moving between two endpoints. Original artwork.
+ * The PayNexa mark: a geometric P drawn as one stroke (stem, then bowl) with a small square "node" at the foot of
+ * the bowl, the point a payment arrives at. Square joins, no container, two colours. Original artwork.
  */
-export function PayNexaMark({ size = 36 }: { size?: number }) {
-  const gradient = useId();
+export function PayNexaMark({ size = 28, tone = "dark" }: { size?: number; tone?: "dark" | "light" }) {
+  const stroke = tone === "dark" ? "#315B46" : "#ECEFE6";
+  const node = "#7FA38B";
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id={gradient} x1="4" y1="2" x2="36" y2="38" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#B3A8FF" />
-          <stop offset="1" stopColor="#7B6BEA" />
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="12" fill={`url(#${gradient})`} />
-      <path d="M12.5 28.5V12.8c0-.6.7-.9 1.1-.4l12.8 15.2c.4.5 1.1.2 1.1-.4V11.5" stroke="#171A35" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="27.5" cy="11.5" r="2.6" fill="#fff" />
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false">
+      <path d="M9 28V5h8a6.5 6.5 0 0 1 0 13H9" stroke={stroke} strokeWidth="4.5" strokeLinejoin="miter" />
+      <rect x="19.5" y="23.5" width="5" height="5" fill={node} />
     </svg>
   );
 }
 
-export function PayNexaLogo({ size = 36, tone = "light" }: { size?: number; tone?: "light" | "dark" }) {
+/** `tone` is the background it sits on: "dark" tone text is ivory (for the charcoal sidebar), "light" is for ivory pages. */
+export function PayNexaLogo({ size = 28, on = "light" }: { size?: number; on?: "light" | "dark" }) {
   return (
-    <span className={`logo logo-${tone}`}>
-      <PayNexaMark size={size} />
+    <span className={`logo logo-on-${on}`}>
+      <PayNexaMark size={size} tone={on === "dark" ? "light" : "dark"} />
       <span className="logo-word">PayNexa</span>
     </span>
   );

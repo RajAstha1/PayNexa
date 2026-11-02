@@ -146,7 +146,7 @@ export function Button({
   busy = false,
   children,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger" | "ghost" | "soft" | "navy" | "glass"; busy?: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger" | "ghost" | "soft" | "ink" | "glass"; busy?: boolean }) {
   const { className, ...others } = rest;
   return (
     <button {...others} className={`btn btn-${variant} ${className ?? ""}`} disabled={rest.disabled || busy} aria-busy={busy || undefined}>
@@ -156,7 +156,7 @@ export function Button({
   );
 }
 
-export function LinkButton({ href, variant = "primary", children, className = "" }: { href: string; variant?: "primary" | "secondary" | "soft" | "ghost" | "navy" | "glass"; children: ReactNode; className?: string }) {
+export function LinkButton({ href, variant = "primary", children, className = "" }: { href: string; variant?: "primary" | "secondary" | "soft" | "ghost" | "ink" | "glass"; children: ReactNode; className?: string }) {
   return <Link href={href} className={`btn btn-${variant} ${className}`}>{children}</Link>;
 }
 

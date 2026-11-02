@@ -9,7 +9,7 @@ import { Dialog } from "../ui";
 import { isActive, visibleNav } from "./nav";
 import { useShellNotifications } from "./notifications-context";
 
-/** Fixed navy navigation. Full width on desktop, an icon rail on tablets (hidden on phones, which get the bottom bar). */
+/** Fixed charcoal navigation. Full width on desktop, an icon rail on tablets (hidden on phones, which get the bottom bar). */
 export function Sidebar({ onSupport }: { onSupport: () => void }) {
   const auth = useAuth();
   const pathname = usePathname();
@@ -19,7 +19,7 @@ export function Sidebar({ onSupport }: { onSupport: () => void }) {
   return (
     <aside className="sidebar" aria-label="Sidebar">
       <Link href="/dashboard" className="sidebar-brand" aria-label="PayNexa home">
-        <PayNexaLogo tone="light" />
+        <PayNexaLogo on="dark" />
       </Link>
       <nav aria-label="Main" className="sidebar-nav" style={{ "--active": Math.max(activeIndex, 0) } as React.CSSProperties}>
         <span className="nav-indicator" aria-hidden="true" data-visible={activeIndex >= 0} />

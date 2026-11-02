@@ -13,7 +13,7 @@ export function TopHeader({ onSearch, onSupport }: { onSearch: () => void; onSup
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <header className="topbar">
-      <Link href="/dashboard" className="topbar-mark" aria-label="PayNexa home"><PayNexaMark size={34} /></Link>
+      <Link href="/dashboard" className="topbar-mark" aria-label="PayNexa home"><PayNexaMark size={30} /></Link>
       <button type="button" className="search-trigger" onClick={onSearch} aria-label="Search" aria-haspopup="dialog">
         <Icon name="search" size={18} />
         <span className="search-text">Search accounts, payments, pages</span>

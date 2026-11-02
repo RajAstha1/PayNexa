@@ -5,14 +5,14 @@ test.describe("anonymous visitors", () => {
   test("are sent to sign in and returned to where they were going", async ({ page }) => {
     await page.goto("/payments");
     await expect(page).toHaveURL(/\/login\?next=%2Fpayments/);
-    await expect(page.getByText("Sandbox.")).toBeVisible();
+    await expect(page.getByText("Secure sandbox environment · Synthetic funds only")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/01-login.png` });
   });
 
   test("get a clear message for wrong credentials and no hint which part was wrong", async ({ page }) => {
     await page.goto("/login");
-    await page.getByLabel("Email").fill(`nobody-${uid()}@example.com`);
-    await page.getByLabel("Password").fill("definitely wrong password");
+    await page.getByLabel("Email", { exact: true }).fill(`nobody-${uid()}@example.com`);
+    await page.getByLabel("Password", { exact: true }).fill("definitely wrong password");
     await page.getByRole("button", { name: "Sign in" }).click();
     // Next.js also renders a hidden role=alert route announcer, so target our own alert by its text.
     await expect(page.getByRole("alert").filter({ hasText: "That email and password do not match." })).toBeVisible();
@@ -21,8 +21,8 @@ test.describe("anonymous visitors", () => {
 
   test("see field validation before anything is sent", async ({ page }) => {
     await page.goto("/register");
-    await page.getByLabel("Email").fill("not-an-email");
-    await page.getByLabel("Password").fill("short");
+    await page.getByLabel("Email", { exact: true }).fill("not-an-email");
+    await page.getByLabel("Password", { exact: true }).fill("short");
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("Enter a valid email address")).toBeVisible();
     await expect(page.getByText("Use at least 12 characters")).toBeVisible();
@@ -31,8 +31,8 @@ test.describe("anonymous visitors", () => {
   test("cannot be redirected off-site through the next parameter", async ({ page }) => {
     const email = `redir-${uid()}@example.com`;
     await page.goto("/register?next=https://evil.example/steal");
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/dashboard/);
     expect(new URL(page.url()).hostname).not.toBe("evil.example");

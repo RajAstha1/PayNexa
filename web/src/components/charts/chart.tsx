@@ -172,8 +172,8 @@ export function Chart({ kind, series, categories, formatTick, summary, height = 
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--lav-500)" stopOpacity="0.34" />
-            <stop offset="100%" stopColor="var(--lav-500)" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--accent-500)" stopOpacity="0.34" />
+            <stop offset="100%" stopColor="var(--accent-500)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         {ticks.map((t) => (

@@ -67,18 +67,18 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="grid grid-2 analytics-charts">
-              <Card title="Money in vs out" actions={<div className="legend"><span><i style={{ background: "var(--positive)" }} />In</span><span><i style={{ background: "var(--lav-500)" }} />Out</span></div>}>
+              <Card title="Money in vs out" actions={<div className="legend"><span><i style={{ background: "var(--positive)" }} />In</span><span><i style={{ background: "var(--accent-500)" }} />Out</span></div>}>
                 <Chart
                   kind="bars"
                   summary={`Money in and out in ${currency} over the last ${periodWord}.`}
                   formatTick={(n) => formatCompact(n, currency)}
                   series={[
                     { key: "in", label: "In", color: "var(--positive)", values: points.map((p) => toPlotNumber(p.incoming, currency)) },
-                    { key: "out", label: "Out", color: "var(--lav-500)", values: points.map((p) => toPlotNumber(p.outgoing, currency)) },
+                    { key: "out", label: "Out", color: "var(--accent-500)", values: points.map((p) => toPlotNumber(p.outgoing, currency)) },
                   ]}
                   categories={points.map((p) => ({ label: p.label, title: p.label, rows: [
                     { label: "In", value: money(p.incoming), color: "var(--positive)" },
-                    { label: "Out", value: money(p.outgoing), color: "var(--lav-500)" },
+                    { label: "Out", value: money(p.outgoing), color: "var(--accent-500)" },
                   ] }))}
                 />
               </Card>
@@ -88,7 +88,7 @@ export default function AnalyticsPage() {
                   summary={`Number of payments per ${days <= 30 ? "day" : days <= 90 ? "week" : "month"} in ${currency}.`}
                   integer
                   formatTick={(n) => String(Math.round(n))}
-                  series={[{ key: "count", label: "Payments", color: "var(--navy-700)", values: points.map((p) => p.count) }]}
+                  series={[{ key: "count", label: "Payments", color: "var(--ink-700)", values: points.map((p) => p.count) }]}
                   categories={points.map((p) => ({ label: p.label, title: p.label, rows: [{ label: "Payments", value: String(p.count) }] }))}
                 />
               </Card>

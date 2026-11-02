@@ -5,13 +5,16 @@ import { NotificationsProvider } from "./shell/notifications-context";
 import { SearchCommand } from "./shell/search-command";
 import { BottomNav, MobileDrawer, Sidebar, SupportDialog } from "./shell/sidebar";
 import { TopHeader } from "./shell/top-header";
-import { Button, Loading } from "./ui";
+import { PayNexaLogo } from "./brand/logo";
+import { Button, Spinner } from "./ui";
 
-export function SandboxBanner() {
+/** Full-page states (checking the session, redirecting, service down) share the sign-in screens' quiet look. */
+function StatusScreen({ children }: { children: ReactNode }) {
   return (
-    <div className="sandbox-banner" role="note">
-      <span className="sandbox-dot" aria-hidden="true" /> <strong>Sandbox.</strong> Synthetic money only. No real funds, banks or payment rails are connected.
-    </div>
+    <main id="main" className="status-screen">
+      <PayNexaLogo size={26} />
+      {children}
+    </main>
   );
 }
 
@@ -36,21 +39,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [authenticated]);
 
   if (auth.status === "loading") {
-    return <div className="center-screen"><Loading label="Checking your session" /></div>;
+    return <StatusScreen><p className="status-line"><Spinner label="Checking your session" /> Checking your session…</p></StatusScreen>;
   }
   if (auth.status === "unavailable") {
     return (
-      <div className="center-screen">
-        <div className="card narrow stack-sm">
-          <h1>Service unavailable</h1>
+      <StatusScreen>
+        <div className="status-copy">
+          <h1>Service unavailable.</h1>
           <p className="muted">We can&apos;t reach the sign-in service right now. Please try again in a moment.</p>
-          <Button onClick={() => window.location.reload()}>Try again</Button>
+          <div><Button onClick={() => window.location.reload()}>Try again</Button></div>
         </div>
-      </div>
+      </StatusScreen>
     );
   }
   if (!authenticated) {
-    return <div className="center-screen"><Loading label="Redirecting to sign in" /></div>;
+    return <StatusScreen><p className="status-line"><Spinner label="Redirecting to sign in" /> Redirecting to sign in…</p></StatusScreen>;
   }
   return (
     <NotificationsProvider>

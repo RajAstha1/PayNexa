@@ -38,9 +38,9 @@ export default function DashboardPage() {
       <div className="dash-hero">
         {accounts.loading && !accounts.data ? (
           <div className="balance-card balance-skeleton" role="status" aria-label="Loading balance">
-            <Skeleton width={160} height={14} className="on-lav" />
-            <Skeleton width={260} height={44} radius={12} className="on-lav" />
-            <Skeleton width={200} height={14} className="on-lav" />
+            <Skeleton width={160} height={14} className="on-accent" />
+            <Skeleton width={260} height={44} radius={12} className="on-accent" />
+            <Skeleton width={200} height={14} className="on-accent" />
           </div>
         ) : accounts.data ? (
           <BalanceCard accounts={list} selected={current?.currency ?? ""} onSelect={setSelected} stats={week.data} statsLoading={week.loading} isAdmin={auth.isAdmin} />

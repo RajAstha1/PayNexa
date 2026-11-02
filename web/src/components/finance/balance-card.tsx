@@ -25,15 +25,8 @@ export function useBalanceHidden(): [boolean, (v: boolean) => void] {
   }];
 }
 
-function Waves() {
-  return (
-    <svg className="balance-waves" viewBox="0 0 520 280" preserveAspectRatio="xMaxYMid slice" aria-hidden="true" focusable="false">
-      <path d="M520 20C440 10 380 70 330 110S210 190 120 170 20 260 0 280H520Z" fill="#fff" opacity="0.18" />
-      <path d="M520 80C450 70 400 120 360 160S260 230 190 220 90 280 70 280H520Z" fill="#fff" opacity="0.2" />
-      <path d="M520 150C470 140 430 180 400 210S330 270 290 280H520Z" fill="#7b6bea" opacity="0.28" />
-      <circle cx="450" cy="62" r="46" fill="#fff" opacity="0.14" />
-    </svg>
-  );
+function Rules() {
+  return <span className="balance-rules" aria-hidden="true" />;
 }
 
 export function BalanceCard({ accounts, selected, onSelect, stats, statsLoading, isAdmin }: {
@@ -44,7 +37,7 @@ export function BalanceCard({ accounts, selected, onSelect, stats, statsLoading,
   if (!account) {
     return (
       <section className="balance-card" aria-label="Balance">
-        <Waves />
+        <Rules />
         <div className="balance-body">
           <span className="balance-label">Available balance</span>
           <p className="balance-empty">Open your first account to start sending and receiving synthetic funds.</p>
@@ -58,7 +51,7 @@ export function BalanceCard({ accounts, selected, onSelect, stats, statsLoading,
   const change = week && previous ? percentChange(week.net, previous.net) : null;
   return (
     <section className="balance-card" aria-label="Balance">
-      <Waves />
+      <Rules />
       <div className="balance-body">
         <div className="balance-top">
           <span className="balance-label">Available balance · {currencyName(account.currency)}</span>
@@ -84,7 +77,7 @@ export function BalanceCard({ accounts, selected, onSelect, stats, statsLoading,
           ) : null}
         </div>
         <div className="balance-actions">
-          {account.status === "ACTIVE" ? <LinkButton href={`/send?from=${account.id}`} variant="navy"><Icon name="send" size={18} /> Send Money</LinkButton> : <span className="badge badge-bad">Account frozen</span>}
+          {account.status === "ACTIVE" ? <LinkButton href={`/send?from=${account.id}`} variant="ink"><Icon name="send" size={18} /> Send Money</LinkButton> : <span className="badge badge-bad">Account frozen</span>}
           {isAdmin && <LinkButton href="/admin?tab=accounts" variant="glass"><Icon name="plus" size={18} /> Add Funds</LinkButton>}
           <Link href={`/accounts/${account.id}`} className="balance-link">Account details <Icon name="arrow-right" size={16} /></Link>
         </div>
