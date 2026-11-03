@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { UPSTREAM_TIMEOUT_MS, serviceUrl } from "./config";
+import { UPSTREAM_TIMEOUT_MS, gatewayHeaders, serviceUrl } from "./config";
 import { UpstreamError } from "./identity";
 import { isExpiredOrExpiring } from "./jwt";
 import type { ProxyTarget } from "./proxy-paths";
@@ -130,7 +130,7 @@ function refreshFailure(error: unknown): BackendResult {
 
 async function send(req: BackendRequest, access: string | undefined, fetchImpl: Fetch): Promise<Response | "unavailable"> {
   const search = sanitizeQuery(req.search);
-  const headers: Record<string, string> = { Accept: "application/json", "X-Correlation-Id": correlation(req.correlationId) };
+  const headers: Record<string, string> = { Accept: "application/json", "X-Correlation-Id": correlation(req.correlationId), ...gatewayHeaders() };
   if (access) headers.Authorization = `Bearer ${access}`;
   if (req.body !== null) headers["Content-Type"] = "application/json";
   if (req.idempotencyKey && IDEMPOTENCY_KEY.test(req.idempotencyKey)) headers["Idempotency-Key"] = req.idempotencyKey;

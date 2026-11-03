@@ -1,0 +1,54 @@
+# Public HTTPS gateway for a single-VM deployment. SANDBOX ONLY.
+#
+# Caddy gets and renews a Let's Encrypt certificate for {$API_HOST} on its own.
+# Nothing is forwarded to a service unless the request carries the shared secret in X-Gateway-Key. Only the web
+# console (hosted on Vercel) knows that secret, so browsers and scanners cannot call identity, payments or
+# notifications directly. The secret is removed before the request reaches a service.
+#
+# Paths:  /identity/*       -> identity-service
+#         /payments/*       -> payments-service
+#         /notifications/*  -> notification-service      (the prefix is stripped)
+# Management endpoints (/actuator/*) are not exposed even to the console.
+{
+	email {$ACME_EMAIL}
+	servers {
+		# The console forwards the end user's address in X-Forwarded-For. Caddy would normally replace it with the
+		# console's own address, which would make every user share one rate-limit bucket. Trusting the header here
+		# is safe because only requests that passed the key check below are ever proxied.
+		trusted_proxies static 0.0.0.0/0 ::/0
+	}
+}
+
+{$API_HOST} {
+	@authorized header X-Gateway-Key {$GATEWAY_KEY}
+
+	handle @authorized {
+		request_header -X-Gateway-Key
+
+		handle /identity/actuator* {
+			respond "Not found" 404
+		}
+		handle /payments/actuator* {
+			respond "Not found" 404
+		}
+		handle /notifications/actuator* {
+			respond "Not found" 404
+		}
+		handle_path /identity/* {
+			reverse_proxy identity-service:8080
+		}
+		handle_path /payments/* {
+			reverse_proxy payments-service:8080
+		}
+		handle_path /notifications/* {
+			reverse_proxy notification-service:8080
+		}
+		handle {
+			respond "Not found" 404
+		}
+	}
+
+	handle {
+		respond "Forbidden" 403
+	}
+}

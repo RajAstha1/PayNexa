@@ -1,4 +1,4 @@
-import { UPSTREAM_TIMEOUT_MS, serviceUrl } from "./config";
+import { UPSTREAM_TIMEOUT_MS, gatewayHeaders, serviceUrl } from "./config";
 import type { Tokens } from "./session-cookies";
 
 export class UpstreamError extends Error {
@@ -31,7 +31,7 @@ function toTokens(body: TokenResponse): Tokens {
 }
 
 async function post(path: string, body: unknown, fetchImpl: Fetch, clientIp?: string): Promise<Response> {
-  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
+  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json", ...gatewayHeaders() };
   if (clientIp) headers["X-Forwarded-For"] = clientIp;
   try {
     return await fetchImpl(`${serviceUrl("identity")}${path}`, {

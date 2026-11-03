@@ -16,6 +16,16 @@ export function serviceUrl(name: ServiceName): string {
   return (fromEnv[name] || defaults[name]).replace(/\/+$/, "");
 }
 
+/**
+ * When the backend sits behind a public gateway (see docs/DEPLOY_ORACLE.md), the gateway only forwards requests that
+ * carry this shared secret, so the services cannot be reached by anyone except this server. Unset locally: no header.
+ * The value comes from the environment and is never sent to the browser.
+ */
+export function gatewayHeaders(env: Record<string, string | undefined> = process.env): Record<string, string> {
+  const key = env.BACKEND_GATEWAY_KEY?.trim();
+  return key && /^[A-Za-z0-9._~-]{16,128}$/.test(key) ? { "X-Gateway-Key": key } : {};
+}
+
 export const COOKIES = {
   /** Short-lived access token. Readable by server components so pages can be gated. */
   access: "pn_at",

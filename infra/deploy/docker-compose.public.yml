@@ -1,0 +1,40 @@
+# Adds a public HTTPS gateway and memory limits to the base stack. SANDBOX ONLY: synthetic money, no real rails.
+#
+#   docker compose -f infra/docker/docker-compose.yml -f infra/deploy/docker-compose.public.yml --env-file .env up -d --build
+#
+# Relative paths in an override file are resolved from the FIRST -f file's directory (infra/docker), hence ../deploy.
+# The services keep their 127.0.0.1-only ports from the base file; the only public ports are Caddy's 80 and 443.
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      API_HOST: ${API_HOST:?run infra/deploy/make-public-env.sh}
+      ACME_EMAIL: ${ACME_EMAIL:?}
+      GATEWAY_KEY: ${GATEWAY_KEY:?}
+    volumes:
+      - ../deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt: ["no-new-privileges:true"]
+    networks: [backend]
+    depends_on: [identity-service, payments-service, notification-service]
+  identity-service:
+    environment:
+      # Safe only because the services are reachable solely through the gateway, which checks the shared secret.
+      IDENTITY_TRUST_FORWARDED_HEADER: "true"
+    mem_limit: 1280m
+  payments-service:
+    mem_limit: 1280m
+  notification-service:
+    mem_limit: 1280m
+  kafka:
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
+    mem_limit: 1g
+  postgres:
+    mem_limit: 1g
+volumes:
+  caddy_data:
+  caddy_config:
