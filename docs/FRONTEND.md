@@ -26,8 +26,7 @@ The console lives in `web/` (Next.js, React, TypeScript). It talks only to the B
 ## Layout
 | Width | Navigation |
 |---|---|
-| >= 1100 px | fixed navy sidebar, 248 px |
-| 768-1099 px | icon rail, 76 px |
+| >= 768 px | no permanent sidebar. A menu button in the header slides a charcoal panel over the page; Escape, the close button or a click outside dismisses it, and focus returns to the button |
 | < 768 px | bottom bar (Home, Accounts, Send, Payments, Menu) and a drawer |
 
 ## What is real and what is left out

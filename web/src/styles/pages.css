@@ -218,7 +218,7 @@ a.txn-row:hover { background: var(--surface-2); text-decoration: none; }
 .summary-amount { display: grid; gap: 2px; padding-bottom: var(--s-4); border-bottom: 1px dashed var(--accent-300); }
 .summary-kv dd { text-align: right; overflow-wrap: anywhere; }
 .summary-kv { grid-template-columns: max-content 1fr; }
-.summary-note { display: flex; align-items: center; gap: var(--s-2); font-size: var(--text-xs); color: var(--pending); font-weight: 600; }
+.summary-note { font-size: var(--text-xs); color: var(--text-2); }
 .confirm-amount { display: grid; gap: 2px; padding: var(--s-4); border-radius: var(--r-lg); background: var(--accent-50); border: 1px solid var(--accent-200); }
 .break { overflow-wrap: anywhere; word-break: break-all; }
 .result-wrap { display: grid; place-items: start center; padding-top: var(--s-8); }

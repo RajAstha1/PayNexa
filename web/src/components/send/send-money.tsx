@@ -225,7 +225,7 @@ export function SendMoney() {
             <dt>Arrives</dt><dd>{mode === "transfer" ? "Immediately" : "When the rail confirms"}</dd>
             <dt>Balance after</dt><dd className="num">{balanceAfter ?? "—"}</dd>
           </dl>
-          <p className="summary-note"><span className="sandbox-dot" aria-hidden="true" /> Sandbox: synthetic money only.</p>
+          <p className="summary-note">Sandbox: synthetic money only.</p>
         </aside>
       </div>
       <ConfirmTransferDialog open={confirming} draft={draft} busy={busy} error={error} onConfirm={() => void confirm()} onCancel={() => { setConfirming(false); setError(null); }} />

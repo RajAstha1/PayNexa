@@ -23,6 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const authenticated = auth.status === "authenticated";
 
   // Cmd/Ctrl+K opens search from anywhere in the console.
@@ -58,10 +59,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <NotificationsProvider>
       <div className="app">
-        <Sidebar onSupport={() => setSupportOpen(true)} />
+        <Sidebar open={navOpen} onClose={() => setNavOpen(false)} onSupport={() => setSupportOpen(true)} />
         <div className="app-main">
-          <TopHeader onSearch={() => setSearchOpen(true)} onSupport={() => setSupportOpen(true)} />
+          <TopHeader onSearch={() => { setNavOpen(false); setSearchOpen(true); }} onSupport={() => setSupportOpen(true)} onNav={() => setNavOpen(true)} navOpen={navOpen} />
           <main id="main" className="page" tabIndex={-1}>{children}</main>
+          <footer className="app-foot">
+            <p>Sandbox environment · Synthetic funds only. No real banks or payment rails are connected.</p>
+          </footer>
         </div>
         <BottomNav onMenu={() => setMenuOpen(true)} />
       </div>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ADMIN_PASSWORD, PASSWORD, SHOTS, seedRichUser, signIn } from "./helpers";
+import { ADMIN_PASSWORD, PASSWORD, SHOTS, openNav, seedRichUser, signIn } from "./helpers";
 
 test.skip(!ADMIN_PASSWORD, "set E2E_ADMIN_PASSWORD (printed by runLocal)");
 test.describe.configure({ mode: "serial" });
@@ -210,7 +210,12 @@ test.describe("motion and accessibility preferences", () => {
     await signIn(page, seeded.email, PASSWORD);
     await settle(page);
     await expect(page.locator("main#main")).toHaveCount(1);
-    await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(1); // exactly one visible main navigation at this width (the other is display:none)
+    // closed, the slide-out navigation is not in the accessibility tree or the tab order
+    await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
+    await openNav(page);
+    await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#app-sidebar")).toBeHidden();
     await page.goto("/dashboard");
     await page.keyboard.press("Tab");
     await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
@@ -230,6 +235,22 @@ test.describe("motion and accessibility preferences", () => {
     await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login/);
   });
+});
+
+test.describe("sandbox notice", () => {
+  for (const width of [1280, 390]) {
+    test(`is one plain line of text at ${width}px, not a badge, chip or banner`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await signIn(page, seeded.email, PASSWORD);
+      await settle(page);
+      await expect(page.locator(".sandbox-pill, .sandbox-chip, .sandbox-note, .sandbox-dot, .sandbox-banner")).toHaveCount(0);
+      await expect(page.getByText("Sandbox", { exact: true })).toHaveCount(0);
+      const note = page.locator(".app-foot");
+      await expect(note).toContainText("Sandbox environment · Synthetic funds only");
+      const bg = await note.locator("p").evaluate((e) => getComputedStyle(e).backgroundColor);
+      expect(bg).toBe("rgba(0, 0, 0, 0)"); // no filled pill behind it
+    });
+  }
 });
 
 test.describe("phones", () => {

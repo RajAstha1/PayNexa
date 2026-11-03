@@ -37,6 +37,12 @@ export async function newContextPage(browser: Browser) {
   return { context, page: await context.newPage() };
 }
 
+/** Opens the slide-out navigation (it is closed by default on wide screens). */
+export async function openNav(page: Page) {
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.locator("#app-sidebar")).toBeVisible();
+}
+
 /** Signs out through the profile menu (the only place the button lives on every screen size). */
 export async function signOut(page: Page) {
   await page.locator(".profile-trigger").click();

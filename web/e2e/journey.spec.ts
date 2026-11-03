@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN_EMAIL, ADMIN_PASSWORD, PASSWORD, SHOTS, newContextPage, openAccount, signIn, signOut, signUp, uid } from "./helpers";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, PASSWORD, SHOTS, newContextPage, openAccount, openNav, signIn, signOut, signUp, uid } from "./helpers";
 
 test.describe("anonymous visitors", () => {
   test("are sent to sign in and returned to where they were going", async ({ page }) => {
@@ -58,6 +58,7 @@ test.describe("a customer's journey", () => {
 
     // --- the administrator adds synthetic funds
     await signIn(admin.page, ADMIN_EMAIL, ADMIN_PASSWORD);
+    await openNav(admin.page);
     await expect(admin.page.getByRole("link", { name: "Admin" })).toBeVisible();
     await admin.page.goto("/admin");
     await admin.page.getByRole("tab", { name: "Accounts" }).click();
@@ -130,6 +131,8 @@ test.describe("a customer's journey", () => {
 
   test("a user cannot see the admin area", async ({ page }) => {
     await signUp(page, `plain-${uid()}@example.com`);
+    await openNav(page);
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
     await page.goto("/admin");
     await expect(page.getByText("Administrators only")).toBeVisible();

@@ -43,7 +43,6 @@ export function AuthChrome({ children }: { children: ReactNode }) {
       <footer className="auth-footer">
         <div className="auth-container">
           <p className="auth-secure">
-            <span className="auth-secure-dot" aria-hidden="true" />
             Secure sandbox environment · Synthetic funds only
           </p>
         </div>

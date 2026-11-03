@@ -3,16 +3,20 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { displayName, initials, relativeTime } from "@/lib/client/format";
 import { notificationInfo } from "@/lib/client/labels";
-import { PayNexaMark } from "../brand/logo";
+import { PayNexaLogo, PayNexaMark } from "../brand/logo";
 import { useAuth } from "../auth-provider";
 import { Icon } from "../icons";
 import { useDismiss } from "../ui";
 import { useShellNotifications } from "./notifications-context";
 
-export function TopHeader({ onSearch, onSupport }: { onSearch: () => void; onSupport: () => void }) {
+export function TopHeader({ onSearch, onSupport, onNav, navOpen }: { onSearch: () => void; onSupport: () => void; onNav: () => void; navOpen: boolean }) {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <header className="topbar">
+      <button type="button" className="icon-btn icon-btn-bordered nav-toggle" onClick={onNav} aria-label="Open navigation" aria-expanded={navOpen} aria-controls="app-sidebar">
+        <Icon name="menu" size={20} />
+      </button>
+      <Link href="/dashboard" className="topbar-brand" aria-label="PayNexa home"><PayNexaLogo size={24} /></Link>
       <Link href="/dashboard" className="topbar-mark" aria-label="PayNexa home"><PayNexaMark size={30} /></Link>
       <button type="button" className="search-trigger" onClick={onSearch} aria-label="Search" aria-haspopup="dialog">
         <Icon name="search" size={18} />
@@ -20,7 +24,6 @@ export function TopHeader({ onSearch, onSupport }: { onSearch: () => void; onSup
         <kbd className="kbd" suppressHydrationWarning>{isMac ? "\u2318K" : "Ctrl K"}</kbd>
       </button>
       <div className="topbar-end">
-        <span className="sandbox-pill" title="Sandbox: synthetic money only"><span className="sandbox-dot" aria-hidden="true" />Sandbox</span>
         <NotificationBell />
         <ProfileMenu onSupport={onSupport} />
       </div>

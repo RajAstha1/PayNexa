@@ -43,23 +43,25 @@ for (const vp of WIDTHS) {
     // wait for the Kafka-delivered notifications so the notification screens show real items
     await expect.poll(async () => (await seeded.user.get<unknown[]>("notifications/notifications")).length, { timeout: 30_000 }).toBeGreaterThan(2);
 
-    // navigation mode
+    // navigation: no permanent sidebar anywhere; a slide-out panel on wide screens, a bottom bar on phones
     const sidebar = page.locator(".sidebar");
     const bottom = page.locator(".bottom-nav");
+    const content = await page.locator(".app-main").boundingBox();
+    expect(content!.x, "content starts at the left edge, no fixed sidebar").toBeLessThanOrEqual(1);
+    await expect(sidebar).toBeHidden();
     if (vp.nav === "bottom") {
-      await expect(sidebar).toBeHidden();
       await expect(bottom).toBeVisible();
+      await expect(page.locator(".nav-toggle")).toBeHidden();
     } else {
       await expect(bottom).toBeHidden();
+      await page.getByRole("button", { name: "Open navigation" }).click();
       await expect(sidebar).toBeVisible();
-      const width = (await sidebar.boundingBox())!.width;
-      if (vp.nav === "sidebar") {
-        expect(width).toBeGreaterThan(200);
-        await expect(sidebar.locator(".nav-label").first()).toBeVisible();
-      } else {
-        expect(width).toBeLessThan(100);
-        await expect(sidebar.locator(".nav-label").first()).toBeHidden();
-      }
+      await expect(sidebar.locator(".nav-label").first()).toBeVisible();
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${SHOTS}/responsive/${vp.w}-sidebar-open.png` });
+      await page.keyboard.press("Escape");
+      await expect(sidebar).toBeHidden();
+      await expect(page.getByRole("button", { name: "Open navigation" })).toBeFocused();
     }
 
     const pages: [string, string][] = [
